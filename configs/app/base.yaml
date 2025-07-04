@@ -1,3 +1,10 @@
-rabbitmq:
-  host: localhost
-  port: CHANGE ME
+mongodb:
+  uri: CHANGE ME
+  db_name: Juggler
+  collections:
+    users: Users
+    orders: Orders
+    stations: Stations
+    crawler_routes: CrawlerRoutes
+    pandemic_routes: PandemicRoutes
+    rts: RTS
