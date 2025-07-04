@@ -22,7 +22,7 @@ class MongoDBManager:
             self._db_name: str = db_name
             self._db: AsyncIOMotorDatabase = self._client[db_name]
             self._initialized = True
-            logger.info(f"Initializes MongoDB Manager")
+            logger.info(f"[MongoDBManager] Initializes MongoDB Manager")
 
     async def create_collections(self, names: list[str]) -> None:
         existing = await self._db.list_collection_names()

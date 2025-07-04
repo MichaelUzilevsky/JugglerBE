@@ -1,4 +1,6 @@
-from typing import Type, TypeVar, Generic, Optional, Callable, Any, List
+from typing import Type, TypeVar, Generic, Optional, Any, List, Dict
+
+from bson import ObjectId
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorCollection
 
@@ -16,34 +18,52 @@ class MongoCrud(Generic[T], ICrud[T]):
     async def _get_collection(self) -> AsyncIOMotorCollection:
         return await self.db.get_collection(self.collection_name)
 
+    @staticmethod
+    def _adapt_data_from_mongo(doc: Dict) -> Dict:
+        if "_id" in doc:
+            doc["id"] = str(doc.pop("_id"))
+        return doc
+
+    @staticmethod
+    def _adapt_data_to_mongo(model: T) -> dict:
+        doc = model.model_dump(exclude_none=True)
+        if "id" in doc:
+            doc["_id"] = ObjectId(doc.pop("id"))
+        return doc
+
+    @staticmethod
+    def _normalize_filter(filter_dict: dict) -> dict:
+        if "id" in filter_dict:
+            filter_dict["_id"] = ObjectId(filter_dict.pop("id"))
+        return filter_dict
+
     async def create(self, item: T) -> T:
         collection = await self._get_collection()
-        item_dict = item.model_dump(by_alias=True, exclude_none=True)
-        result = await collection.insert_one(item_dict)
-        item_dict["_id"] = result.inserted_id
-        return self.model(**item_dict)
+        doc = self._adapt_data_to_mongo(item)
+        result = await collection.insert_one(doc)
+        doc["id"] = str(result.inserted_id)
+        return self.model(**doc)
 
-    async def get(self, filter_func: Optional[Callable[[Any], Any]] = None) -> Optional[T]:
+    async def get(self, data_filter: Optional[Any] = None) -> Optional[T]:
         collection = await self._get_collection()
-        filters = filter_func(None) if filter_func else {}
+        filters = self._normalize_filter(data_filter)
         document = await collection.find_one(filters)
-        return self.model(**document) if document else None
+        return self.model(**self._adapt_data_from_mongo(dict(document))) if document else None
 
-    async def get_all(self, filter_func: Optional[Callable[[Any], Any]] = None) -> List[T]:
+    async def get_all(self, data_filter: Optional[Any] = None) -> List[T]:
         collection = await self._get_collection()
-        filters = filter_func(None) if filter_func else {}
-        cursor = collection.find(filters)
-        return [self.model(**doc) async for doc in cursor]
+        cursor = collection.find(data_filter)
+        return [self.model(**self._adapt_data_from_mongo(dict(doc))) async for doc in cursor]
 
-    async def update(self, filter_func: Callable[[Any], Any], update_data: T) -> bool:
+    async def update(self, data_filter: Optional[Any], update_data: T) -> bool:
         collection = await self._get_collection()
-        filters = filter_func(None)
-        update_dict = {"$set": update_data.model_dump(by_alias=True, exclude_none=True)}
+        update_dict = {"$set": self._adapt_data_to_mongo(update_data)}
+        filters = self._normalize_filter(data_filter)
         result = await collection.update_one(filters, update_dict)
         return result.modified_count > 0
 
-    async def delete(self, filter_func: Callable[[Any], Any]) -> bool:
+    async def delete(self, data_filter: Optional[Any]) -> bool:
         collection = await self._get_collection()
-        filters = filter_func(None)
+        filters = self._normalize_filter(data_filter)
         result = await collection.delete_one(filters)
         return result.deleted_count > 0
