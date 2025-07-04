@@ -4,7 +4,8 @@ mongodb:
   collections:
     users: Users
     orders: Orders
-    stations: Stations
-    crawler_routes: CrawlerRoutes
-    pandemic_routes: PandemicRoutes
-    rts: RTS
+    resources:
+      stations: Stations
+      crawler_routes: CrawlerRoutes
+      pandemic_routes: PandemicRoutes
+      rts: RTS
