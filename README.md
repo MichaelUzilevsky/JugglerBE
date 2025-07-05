@@ -1,2 +1,2 @@
-# JugglerBE
+# The Juggler BackEnd
 

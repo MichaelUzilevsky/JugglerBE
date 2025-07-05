@@ -1,8 +1,8 @@
 from typing import Type, TypeVar, List, Dict, Optional
 
 from src import config, logger
-from src.db.mongo_crud import MongoCrud
-from src.db.icrud import ICrud
+from src.db.mongodb.mongo_crud import MongoCrud
+from src.db.abstract.icrud import ICrud
 from src.exceptions.resources_exceptions.duplicate_resource_name_exception import DuplicateResourceNameException
 from src.models.resources.abstact.base_resource import BaseResource
 

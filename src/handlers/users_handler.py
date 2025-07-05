@@ -1,7 +1,7 @@
 from typing import Optional, List
 
 from src import logger
-from src.db.icrud import ICrud
+from src.db.abstract.icrud import ICrud
 from src.exceptions.users_exceptions.login_failed_exeption import LoginFailedException
 from src.exceptions.users_exceptions.username_already_exists_exception import UsernameAlreadyExistsException
 from src.models.users.user import User

@@ -1,4 +1,4 @@
-from src.models.base_data import BaseData
+from src.models.abstract.base_data import BaseData
 
 
 class BaseResource(BaseData):

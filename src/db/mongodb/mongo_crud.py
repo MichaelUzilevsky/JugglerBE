@@ -4,8 +4,8 @@ from bson import ObjectId
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from .icrud import ICrud
-from .mongodb import MongoDBManager
+from src.db.abstract.icrud import ICrud
+from src.db.mongodb import MongoDBManager
 
 T = TypeVar("T", bound=BaseModel)
 
