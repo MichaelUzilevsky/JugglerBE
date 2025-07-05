@@ -5,6 +5,11 @@ from pathlib import Path
 
 
 def setup_logging():
+    """
+    Set up logging configuration from a YAML file and initialize log file paths.
+    Raises:
+        FileNotFoundError: If the logger config file is not found.
+    """
     config_path = Path(__file__).resolve().parent.parent.parent / "configs" / "logging" / "logger.yaml"
 
     if not config_path.exists():

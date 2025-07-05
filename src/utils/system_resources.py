@@ -6,18 +6,26 @@ from src.models.resources.abstact.base_resource import BaseResource
 
 
 def get_resource_class_by_fullname(class_path: str):
+    """
+    Locate and return a class object by its full import path string.
+    """
     return locate(class_path)
 
 
 def change_to_class_format(name: str) -> str:
     """
-    Converts a snake_case name (e.g., 'crawler_routes') to PascalCase (e.g., 'CrawlerRoutes')
-    then removes the "s" at the end
+    Converts a snake_case name (e.g., 'crawler_routes') to PascalCase (e.g., 'CrawlerRoute').
+    Removes the trailing 's'.
     """
     return name[:-1].replace("_", " ").title().replace(" ", "")
 
 
 def get_all_resource_classes_from_config() -> List[Type[BaseResource]]:
+    """
+    Retrieve all resource classes defined in the config file.
+    Returns a list of BaseResource subclasses.
+    Raises ValueError if the config is missing the resources section.
+    """
     try:
         config_resources = config.get_value("mongodb", "collections", "resources")
     except KeyError as e:

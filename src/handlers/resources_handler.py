@@ -10,10 +10,16 @@ T = TypeVar("T", bound=BaseResource)
 
 class ResourcesHandler:
     def __init__(self, resource_classes: List[Type[T]]) -> None:
+        """
+        Initialize ResourcesHandler with a list of resource classes and map them to CRUD instances.
+        """
         self._class_to_crud: Dict[Type[T], ICrud[T]] = {}
         self._initialize_cruds(resource_classes)
 
     def _initialize_cruds(self, resource_classes: List[Type[T]]) -> None:
+        """
+        Map each resource class to its corresponding CRUD instance using config.
+        """
         for cls in resource_classes:
             collection_key = self._get_collection_key(cls.__name__)
             try:
@@ -24,6 +30,10 @@ class ResourcesHandler:
                 logger.warning(f"[ResourcesManager] No collection mapping found for resource class '{cls.__name__}'")
 
     def _get_crud(self, resource_type: Type[T]) -> ICrud[T]:
+        """
+        Retrieve the CRUD instance for a given resource type.
+        Raises ValueError if not mapped.
+        """
         if resource_type not in self._class_to_crud:
             error_msg = f"[ResourcesManager] No CRUD instance mapped for resource type: {resource_type.__name__}"
             logger.error(error_msg)
@@ -32,11 +42,17 @@ class ResourcesHandler:
 
     @staticmethod
     def _get_collection_key(class_name: str) -> str:
+        """
+        Convert a class name to a collection key in snake_case and plural form.
+        """
         import re
         snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).lower()
         return f"{snake_case}s"
 
     async def create(self, resource_type: Type[T], item: T) -> T:
+        """
+        Create a new resource of the given type. Raises on duplicate name.
+        """
         crud = self._get_crud(resource_type)
 
         existing = await crud.get({"name": item.name})
@@ -52,6 +68,9 @@ class ResourcesHandler:
         return created
 
     async def get_all(self, resource_type: Type[T]) -> List[T]:
+        """
+        Retrieve all resources of a given type from the database.
+        """
         crud = self._get_crud(resource_type)
         results = await crud.get_all()
         count = len(results)
@@ -62,6 +81,9 @@ class ResourcesHandler:
         return results
 
     async def get_by_id(self, resource_type: Type[T], item_id: str) -> Optional[T]:
+        """
+        Retrieve a resource by its ID.
+        """
         crud = self._get_crud(resource_type)
         result = await crud.get({"id": item_id})
         if result:
@@ -71,6 +93,9 @@ class ResourcesHandler:
         return result
 
     async def update(self, resource_type: Type[T], item: T) -> bool:
+        """
+        Update a resource. Raises on duplicate name.
+        """
         crud = self._get_crud(resource_type)
 
         existing = await crud.get({"name": item.name})
@@ -86,6 +111,9 @@ class ResourcesHandler:
         return success
 
     async def delete(self, resource_type: Type[T], item_id: str) -> bool:
+        """
+        Delete a resource by its ID.
+        """
         crud = self._get_crud(resource_type)
         success = await crud.delete({"id": item_id})
         if success:
@@ -96,4 +124,7 @@ class ResourcesHandler:
 
     @property
     def class_to_crud(self):
+        """
+        Property to access the mapping of resource classes to CRUD instances.
+        """
         return self._class_to_crud
