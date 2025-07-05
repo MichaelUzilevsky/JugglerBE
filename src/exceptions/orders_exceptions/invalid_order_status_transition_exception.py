@@ -1,3 +1,0 @@
-class InvalidOrderStatusTransitionException(Exception):
-    pass
-

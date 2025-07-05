@@ -93,3 +93,7 @@ class ResourcesHandler:
         else:
             logger.warning(f"[ResourcesManager] Failed to delete {resource_type.__name__} with id={item_id}")
         return success
+
+    @property
+    def class_to_crud(self):
+        return self._class_to_crud
