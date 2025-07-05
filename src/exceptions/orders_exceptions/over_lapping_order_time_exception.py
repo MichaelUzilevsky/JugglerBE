@@ -1,0 +1,3 @@
+class OverlappingOrderTimeException(Exception):
+    pass
+
