@@ -28,9 +28,11 @@ class ResourcesHandler:
             try:
                 collection_name = config.get_value("mongodb", "collections", "resources", collection_key)
                 self._class_to_crud[cls] = MongoCrud(cls, collection_name)
-                logger.debug(f"[ResourcesHandler] Mapped {cls.__name__} to collection '{collection_name}'")
+                logger.debug(f"[ResourcesHandler] Mapped resource class '{cls.__name__}' "
+                             f"to collection '{collection_name}'")
             except KeyError:
-                logger.warning(f"[ResourcesHandler] No collection mapping found for resource class '{cls.__name__}'")
+                logger.error(f"[ResourcesHandler] Collection config missing for resource class '{cls.__name__}' "
+                             f"(expected key: '{collection_key}')")
 
     def _get_crud(self, resource_type: Type[T]) -> ICrud[T]:
         """
@@ -60,14 +62,16 @@ class ResourcesHandler:
 
         existing = await crud.get({"name": item.name})
         if existing:
-            logger.warning(f"[ResourcesHandler] Duplicate resource name '{item.name}' on create")
+            logger.warning(f"[ResourcesHandler] Create failed: resource with name '{item.name}' "
+                           f"already exists (id={existing.id})")
             raise DuplicateResourceNameException(item.name)
 
         created = await crud.create(item)
         if created:
-            logger.info(f"[ResourcesHandler] Successfully created {resource_type.__name__} with id={created.id}")
+            logger.info(f"[ResourcesHandler] Created {resource_type.__name__} "
+                        f"with id={created.id}, name='{item.name}'")
         else:
-            logger.warning(f"[ResourcesHandler] Failed to create {resource_type.__name__}")
+            logger.error(f"[ResourcesHandler] Failed to create {resource_type.__name__} named '{item.name}'")
         return created
 
     async def get_all_by_resource_class(self, resource_type: Type[T]) -> List[T]:
@@ -78,19 +82,21 @@ class ResourcesHandler:
         results = await crud.get_all()
         count = len(results)
         if count:
-            logger.info(f"[ResourcesHandler] Retrieved {count} {resource_type.__name__}(s) from the database")
+            logger.debug(f"[ResourcesHandler] Retrieved {count} record(s) of type {resource_type.__name__}")
         else:
-            logger.warning(f"[ResourcesHandler] No {resource_type.__name__} records found")
+            logger.warning(f"[ResourcesHandler] No records found for type {resource_type.__name__}")
         return results
 
     async def get_all(self) -> List[T]:
         resources = []
         for resource_class in self.resource_classes:
             resources.extend(await self.get_all_by_resource_class(resource_class))
-        if len(resources):
-            logger.info(f"[ResourcesHandler] Retrieved {len(resources)} Resources from the database")
+
+        total = len(resources)
+        if total:
+            logger.info(f"[ResourcesHandler] Retrieved total of {total} resource(s) across all types")
         else:
-            logger.warning(f"[ResourcesHandler] No Resource records found")
+            logger.warning("[ResourcesHandler] No resources found in the system")
         return resources
 
     async def get_by_id(self, item_id: str) -> Optional[Tuple[T, Type[T]]]:
@@ -106,14 +112,13 @@ class ResourcesHandler:
             if resource:
                 found = True
                 break
-                
+
         if not found:
-            logger.error(f"[ResourcesHandler] No Resource records found with id={item_id}")
+            logger.error(f"[ResourcesHandler] Resource not found: no record with id={item_id}")
             raise ResourceNotFoundException(f"No Resource records found with id={item_id}")
-        
-        if resource:
-            logger.info(f"[ResourcesHandler] Found {resource_class.__name__} with id={item_id}")
-            
+
+        logger.info(
+            f"[ResourcesHandler] Located {resource_class.__name__} with id={item_id}, name='{resource.name}'")
         return resource, resource_class
 
     async def update(self, item: T) -> bool:
@@ -126,14 +131,17 @@ class ResourcesHandler:
 
         existing = await crud.get({"name": item.name})
         if existing and existing.id != item.id:
-            logger.warning(f"[ResourcesHandler] Duplicate resource name '{item.name}' on update")
+            logger.warning(f"[ResourcesHandler] Update conflict: resource with name '{item.name}' "
+                           f"already exists (id={existing.id})")
             raise DuplicateResourceNameException(item.name)
 
         success = await crud.update({"id": item.id}, item)
         if success:
-            logger.info(f"[ResourcesHandler] Updated {resource_type.__name__} with id={item.id}")
+            logger.info(f"[ResourcesHandler] Successfully updated {resource_type.__name__}"
+                        f" with id={item.id}, name='{item.name}'")
         else:
-            logger.warning(f"[ResourcesHandler] Failed to update {resource_type.__name__} with id={item.id}")
+            logger.error(f"[ResourcesHandler] Failed to update {resource_type.__name__}"
+                         f" with id={item.id}, name='{item.name}'")  # 🟩 CHANGED
         return success
 
     async def delete(self, item_id: str) -> bool:
@@ -145,7 +153,9 @@ class ResourcesHandler:
         crud = self._get_crud(resource_type)
         success = await crud.delete({"id": item_id})
         if success:
-            logger.info(f"[ResourcesHandler] Deleted {resource_type.__name__} with id={item_id}")
+            logger.info(
+                f"[ResourcesHandler] Deleted {resource_type.__name__} with id={item_id}, name='{resource.name}'")
         else:
-            logger.warning(f"[ResourcesHandler] Failed to delete {resource_type.__name__} with id={item_id}")
+            logger.error(
+                f"[ResourcesHandler] Delete failed: could not remove {resource_type.__name__} with id={item_id}")
         return success
