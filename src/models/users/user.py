@@ -1,5 +1,5 @@
 from src.models.abstract.base_data import BaseData
-from src.models.users.user_role import UserRole
+from src.models.users.enums.user_role import UserRole
 
 
 class User(BaseData):

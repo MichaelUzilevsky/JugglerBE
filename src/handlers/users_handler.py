@@ -6,7 +6,7 @@ from src.exceptions.users_exceptions.login_failed_exeption import LoginFailedExc
 from src.exceptions.users_exceptions.username_already_exists_exception import UsernameAlreadyExistsException
 from src.models.users.user import User
 from src.models.users.user_login import UserLogin
-from src.models.users.user_role import UserRole
+from src.models.users.enums.user_role import UserRole
 
 
 class UsersHandler:
