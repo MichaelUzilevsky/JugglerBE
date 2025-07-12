@@ -4,6 +4,9 @@ import asyncio
 async def main():
 <<<<<<< Updated upstream
 =======
+    """
+    Main entry point for the application.
+    """
 >>>>>>> Stashed changes
     pass
 
