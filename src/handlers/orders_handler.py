@@ -30,7 +30,7 @@ class OrdersHandler:
             "start_time": {"$lt": end},
             "end_time": {"$gt": start},
         })
-        logger.info(f"[OrdersHandler] Retrieved {len(orders)} order(s) in time range {start} - {end}")
+        logger.debug(f"[OrdersHandler] Retrieved {len(orders)} order(s) in time range {start} - {end}")
         return orders
 
     async def get_users_orders(self, user_id: str) -> List[Order]:
@@ -38,7 +38,7 @@ class OrdersHandler:
         Get all orders for a specific user.
         """
         orders = await self._crud.get_all({"user_id": user_id})
-        logger.info(f"[OrdersHandler] Retrieved {len(orders)} order(s) for user '{user_id}'")
+        logger.debug(f"[OrdersHandler] Retrieved {len(orders)} order(s) for user '{user_id}'")
         return orders
 
     async def get_order(self, order_id: str) -> Optional[Order]:
@@ -47,7 +47,7 @@ class OrdersHandler:
         """
         order = await self._crud.get({"id": order_id})
         if not order:
-            logger.warning(f"[OrdersHandler] Order with id '{order_id}' not found")
+            logger.error(f"[OrdersHandler] Order with id '{order_id}' not found")
             raise OrderNotFoundException(order_id)
         logger.info(f"[OrdersHandler] Found order with id '{order_id}'")
         return order
@@ -57,7 +57,7 @@ class OrdersHandler:
         Get all orders in the system.
         """
         orders = await self._crud.get_all()
-        logger.info(f"[OrdersHandler] Retrieved {len(orders)} total orders")
+        logger.debug(f"[OrdersHandler] Retrieved {len(orders)} total orders")
         return orders
 
     async def _validate_order_resources(self, order: Order):
@@ -68,6 +68,7 @@ class OrdersHandler:
             resource, resource_type =  await self._resources_handler.get_by_id(resource_id)
 
             if not resource:
+                logger.error(f"[OrdersHandler] Missing resource with id '{resource_id}' in order '{order.id}'")
                 raise ResourceNotFoundException(f"No Resource records found with id={resource_id}")
 
 
@@ -86,6 +87,7 @@ class OrdersHandler:
                 ]
             })
             if conflicting_orders:
+                logger.warning(f"[OrdersHandler] Conflict detected for order '{order.id}' on resource '{resource_id}'")
                 raise OrderConflictException(f"[OrdersHandler] Order={order} "
                                              f"is conflicting with other orders about resourceID={resource_id}")
 
@@ -100,7 +102,7 @@ class OrdersHandler:
         if created:
             logger.info(f"[OrdersHandler] Created order with id '{created.id}'")
         else:
-            logger.warning(f"[OrdersHandler] Failed to Create order")
+            logger.error(f"[OrdersHandler] Failed to create order")
         return created
 
     async def update_order(self, order: Order) -> bool:
@@ -119,7 +121,7 @@ class OrdersHandler:
         if success:
             logger.info(f"[OrdersHandler] Updated order '{order.id}'")
         else:
-            logger.warning(f"[OrdersHandler] Failed to update order '{order.id}'")
+            logger.error(f"[OrdersHandler] Failed to update order '{order.id}'")
         return success
 
     async def approve_order(self, order_id: str, user_id: str) -> bool:
@@ -127,6 +129,7 @@ class OrdersHandler:
         Approve an order. Only admins can approve.
         """
         if not await self._users_handler.is_admin(user_id):
+            logger.warning(f"[OrdersHandler] Permission denied to approve order '{order_id}' by user '{user_id}'")
             raise PermissionDeniedException("Only admins can approve orders")
 
         order = await self.get_order(order_id)
@@ -138,7 +141,7 @@ class OrdersHandler:
         if success:
             logger.info(f"[OrdersHandler] Approved order '{order_id}'")
         else:
-            logger.warning(f"[OrdersHandler] Failed to approve order '{order_id}'")
+            logger.error(f"[OrdersHandler] Failed to approve order '{order_id}'")
         return success
 
     async def reject_order(self, order_id: str, user_id: str) -> bool:
@@ -146,6 +149,7 @@ class OrdersHandler:
         Reject an order. Only admins can reject.
         """
         if not await self._users_handler.is_admin(user_id):
+            logger.warning(f"[OrdersHandler] Permission denied to reject order '{order_id}' by user '{user_id}'")
             raise PermissionDeniedException("Only admins can reject orders")
 
         order = await self.get_order(order_id)
@@ -154,14 +158,15 @@ class OrdersHandler:
         if success:
             logger.info(f"[OrdersHandler] Rejected order '{order_id}'")
         else:
-            logger.warning(f"[OrdersHandler] Failed to reject order '{order_id}'")
+            logger.error(f"[OrdersHandler] Failed to reject order '{order_id}'")
         return success
 
     async def move_order_to_pending(self, order_id: str, user_id: str) -> bool:
         """
-        Move an order to pending status. Only admins can perform this action.
+        Move an order to pend status. Only admins can perform this action.
         """
         if not await self._users_handler.is_admin(user_id):
+            logger.warning(f"[OrdersHandler] Permission denied to move order '{order_id}' to pending by user '{user_id}'")  # [MODIFIED]
             raise PermissionDeniedException("Only admins can move orders to pending")
 
         order = await self.get_order(order_id)
@@ -170,7 +175,7 @@ class OrdersHandler:
         if success:
             logger.info(f"[OrdersHandler] Moved order '{order_id}' to pending")
         else:
-            logger.warning(f"[OrdersHandler] Failed to move order '{order_id}' to pending")
+            logger.error(f"[OrdersHandler] Failed to move order '{order_id}' to pending")
         return success
 
     async def delete_order(self, order_id: str) -> bool:
@@ -181,7 +186,7 @@ class OrdersHandler:
         if success:
             logger.info(f"[OrdersHandler] Deleted order '{order_id}'")
         else:
-            logger.warning(f"[OrdersHandler] Failed to delete order '{order_id}'")
+            logger.error(f"[OrdersHandler] Failed to delete order '{order_id}'")
         return success
 
     async def get_orders_per_resource(self, resource_id: str, start, end) -> List[Order]:
@@ -193,7 +198,7 @@ class OrdersHandler:
             "start_time": {"$lt": end},
             "end_time": {"$gt": start},
         })
-        logger.info(f"[OrdersHandler] Retrieved {len(orders)} order(s) for resource '{resource_id}' in range")
+        logger.debug(f"[OrdersHandler] Retrieved {len(orders)} order(s) for resource '{resource_id}' in range")
         return orders
 
     async def get_orders_by_resource_class(self, resource_type: Type[BaseResource]) -> List[Order]:
@@ -203,5 +208,6 @@ class OrdersHandler:
         resources = await self._resources_handler.get_all_by_resource_class(resource_type)
         resource_ids = [res.id for res in resources if res.id]
         orders = await self._crud.get_all({"resources_ids": {"$in": resource_ids}})
-        logger.info(f"[OrdersHandler] Retrieved {len(orders)} order(s) containing resource type '{resource_type.__name__}'")
+        logger.debug(f"[OrdersHandler] Retrieved {len(orders)} order(s) containing resource type "
+                     f"'{resource_type.__name__}'")
         return orders
