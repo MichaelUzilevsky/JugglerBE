@@ -38,7 +38,7 @@ class MongoDBManager:
         for name in names:
             if name not in existing:
                 await self._db.create_collection(name)
-                logger.info(f"[MongoDBManager] Created collection: {name}")
+                logger.debug(f"[MongoDBManager] Created collection: {name}")
 
     async def get_collection(self, name: str) -> AsyncIOMotorCollection:
         """
@@ -52,7 +52,7 @@ class MongoDBManager:
         existing_collections = await self._db.list_collection_names()
         if name not in existing_collections:
             await self._db.create_collection(name)
-            logger.info(f"[MongoDBManager] Created missing MongoDB collection: {name}")
+            logger.debug(f"[MongoDBManager] Created missing MongoDB collection: {name}")
 
         return self._db[name]
 

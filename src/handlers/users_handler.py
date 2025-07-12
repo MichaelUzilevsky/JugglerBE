@@ -22,7 +22,7 @@ class UsersHandler:
         """
         user =  await self._crud.get({"username": login.username})
         if user:
-            logger.info(f"[UsersHandler] Retrieved user with username '{login.username}'")
+            logger.debug(f"[UsersHandler] Retrieved user with username '{login.username}'")
         else:
             logger.warning(f"[UsersHandler] User with username '{login.username}' not found")
         return user
@@ -33,7 +33,7 @@ class UsersHandler:
         """
         users =  await self._crud.get_all()
         if users:
-            logger.info(f"[UsersHandler] Retrieved {len(users)} user(s) from the system")
+            logger.debug(f"[UsersHandler] Retrieved {len(users)} user(s) from the system")
         else:
             logger.warning("[UsersHandler] No users found in the system")
         return users
@@ -44,7 +44,7 @@ class UsersHandler:
         """
         user = await self._crud.get({"id": user_id})
         if user:
-            logger.info(f"[UsersHandler] Retrieved user with user id '{user_id}'")
+            logger.debug(f"[UsersHandler] Retrieved user with user id '{user_id}'")
         else:
             logger.warning(f"[UsersHandler] User with user id '{user_id}' not found")
         return user
@@ -54,12 +54,15 @@ class UsersHandler:
         Attempt to log in a user with the provided credentials. Raises on failure.
         """
         user = await self.get_user(login)
-        if user and user.password == login.password:
-            logger.info(f"[UsersHandler] User '{login.username}' logged in successfully")
-            return user
-
-        logger.warning(f"[UsersHandler] Failed login attempt for username '{login.username}'")
-        raise LoginFailedException(f"Could not login with the provided credentials")
+        if user:
+            if user.password == login.password:
+                logger.info(f"[UsersHandler] User '{login.username}' logged in successfully")
+                return user
+            else:
+                logger.warning(f"[UsersHandler] Login failed for '{login.username}': incorrect password")
+        else:
+            logger.warning(f"[UsersHandler] Login failed: username '{login.username}' not found")
+        raise LoginFailedException("Invalid username or password")
 
     async def sign_up(self, user: User) -> Optional[User]:
         """
@@ -67,11 +70,14 @@ class UsersHandler:
         """
         existing = await self._crud.get({"username": user.username})
         if existing:
-            logger.warning(f"[UsersHandler] Sign-up failed: username '{user.username}' already exists")
+            logger.warning(f"[UsersHandler] Cannot sign up user '{user.username}': username already exists")
             raise UsernameAlreadyExistsException(f"Username '{user.username}' already exists")
 
         created_user = await self._crud.create(user)
-        logger.info(f"[UsersHandler] User '{user.username}' signed up successfully")
+        if created_user:
+            logger.info(f"[UsersHandler] New user '{user.username}' signed up successfully with ID '{created_user.id}'")
+        else:
+            logger.error(f"[UsersHandler] Failed to create user '{user.username}'")
         return created_user
 
     async def delete(self, user_id: str) -> bool:
@@ -80,20 +86,30 @@ class UsersHandler:
         """
         result = await self._crud.delete({"id": user_id})
         if result:
-            logger.info(f"[UsersHandler] User '{user_id}' deleted successfully")
+            logger.info(f"[UsersHandler] Successfully deleted user with ID '{user_id}'")
         else:
-            logger.warning(f"[UsersHandler] Failed to delete user '{user_id}'")
+            logger.warning(f"[UsersHandler] Failed to delete user: no user found with ID '{user_id}'")
         return result
 
     async def update(self, user: User) -> bool:
         """
         Update a user's information.
         """
+        if not user.id:
+            logger.error("[UsersHandler] Cannot update user: missing user ID")
+            return False
+
+        existing = await self.get_user_by_id(user.id)
+        if not existing:
+            logger.warning(f"[UsersHandler] Update failed: no user found with ID '{user.id}'")
+            return False
+
         result = await self._crud.update({"id": user.id}, user)
         if result:
-            logger.info(f"[UsersHandler] User '{user.username}' updated successfully")
+            logger.info(f"[UsersHandler] User '{user.username}' (ID: {user.id}) updated successfully")
         else:
-            logger.warning(f"[UsersHandler] Failed to update user '{user.username}'")
+            logger.warning(
+                f"[UsersHandler] Failed to update user '{user.username}' (ID: {user.id})")
         return result
 
     async def is_admin(self, user_id: str) -> bool:
@@ -101,12 +117,14 @@ class UsersHandler:
         Check if a user is an admin by their user ID.
         """
         user = await self.get_user_by_id(user_id)
-        if user:
-            is_admin = user.role == UserRole.ADMIN
-            logger.info(f"[UsersHandler] User '{user.username}' is {'an admin' if is_admin else 'not an admin'}")
-            return is_admin
-        logger.warning(f"[UsersHandler] User id '{user_id}' not found when checking admin status")
-        return False
+        if not user:
+            logger.warning(f"[UsersHandler] Admin check failed: no user found with ID '{user_id}'")
+            return False
+
+        is_admin = user.role == UserRole.ADMIN
+        logger.debug(
+            f"[UsersHandler] User '{user.username}' (ID: {user.id}) admin check: {'is admin' if is_admin else 'not admin'}")
+        return is_admin
 
     async def set_admin(self, user_id: str) -> bool:
         """
@@ -114,13 +132,13 @@ class UsersHandler:
         """
         user = await self.get_user_by_id(user_id)
         if not user:
-            logger.warning(f"[UsersHandler] Cannot set admin: user id '{user_id}' not found")
+            logger.warning(f"[UsersHandler] Cannot set admin: user with ID '{user_id}' not found")
             return False
 
         user.role = UserRole.ADMIN
         result = await self.update(user)
         if result:
-            logger.info(f"[UsersHandler] User '{user.username}' set as admin successfully")
+            logger.info(f"[UsersHandler] User '{user.username}' (ID: {user.id}) promoted to admin")
         else:
-            logger.warning(f"[UsersHandler] Failed to update user '{user.username}' to admin")
+            logger.warning(f"[UsersHandler] Failed to promote user '{user.username}' to admin")
         return result
