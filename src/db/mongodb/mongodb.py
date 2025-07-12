@@ -46,6 +46,7 @@ class MongoDBManager:
         Raises ConnectionError if not connected.
         """
         if not await self.is_connected():
+            logger.error("[MongoDBManager] MongoDB is not reachable")
             raise ConnectionError("[MongoDBManager] MongoDB is not reachable")
 
         existing_collections = await self._db.list_collection_names()

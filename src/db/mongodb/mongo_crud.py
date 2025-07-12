@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 from src.db.abstract.icrud import ICrud
-from src.db.mongodb import MongoDBManager
+from src.db.mongodb.mongodb import MongoDBManager
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -46,11 +46,33 @@ class MongoCrud(Generic[T], ICrud[T]):
     @staticmethod
     def _normalize_filter(filter_dict: dict) -> dict:
         """
-        Normalize filter dictionary, converting 'id' to '_id' for MongoDB.
+        Recursively normalize filter dictionary, converting 'id' to '_id' and strings to ObjectId.
         """
-        if "id" in filter_dict:
-            filter_dict["_id"] = ObjectId(filter_dict.pop("id"))
-        return filter_dict
+        def normalize(d: dict) -> dict:
+            new_dict = {}
+            for key, value in d.items():
+                if isinstance(value, dict):
+                    value = normalize(value)
+                # If the key is 'id', convert to '_id' and handle special operators
+                if key == "id":
+                    new_dict["_id"] = MongoCrud._convert_to_object_id(value)
+                else:
+                    new_dict[key] = value
+            return new_dict
+
+        return normalize(filter_dict)
+
+    @staticmethod
+    def _convert_to_object_id(value: Any) -> Any:
+        """
+        Convert string or operator dict to ObjectId or a dict of ObjectId(s).
+        """
+        if isinstance(value, str):
+            return ObjectId(value)
+        elif isinstance(value, dict):
+            return {k: ObjectId(v) if isinstance(v, str) else v for k, v in value.items()}
+        else:
+            return value
 
     async def create(self, item: T) -> T:
         """
@@ -76,7 +98,8 @@ class MongoCrud(Generic[T], ICrud[T]):
         Retrieve all items matching the filter from the collection.
         """
         collection = await self._get_collection()
-        cursor = collection.find(data_filter)
+        filters = self._normalize_filter(data_filter)
+        cursor = collection.find(filters)
         return [self.model(**self._adapt_data_from_mongo(dict(doc))) async for doc in cursor]
 
     async def update(self, data_filter: Optional[Any], update_data: T) -> bool:

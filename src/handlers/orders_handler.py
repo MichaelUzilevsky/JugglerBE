@@ -65,14 +65,11 @@ class OrdersHandler:
         Ensure all resources in the order exist. Raises ResourceNotFoundException if not found.
         """
         for resource_id in order.resources_ids:
-            found = False
-            for resource_class in self._resources_handler.class_to_crud.keys():
-                resource = await self._resources_handler.get_by_id(resource_class, resource_id)
-                if resource:
-                    found = True
-                    break
-            if not found:
-                raise ResourceNotFoundException(resource_id)
+            resource, resource_type =  await self._resources_handler.get_by_id(resource_id)
+
+            if not resource:
+                raise ResourceNotFoundException(f"No Resource records found with id={resource_id}")
+
 
     async def _check_conflicts(self, order: Order):
         """
@@ -83,12 +80,14 @@ class OrdersHandler:
             conflicting_orders = await self._crud.get_all({
                 "resources_ids": resource_id,
                 "status": OrderStatus.APPROVED,
+                "id": {"$ne": order.id},
                 "$or": [
                     {"start_time": {"$lt": order.end_time}, "end_time": {"$gt": order.start_time}}
                 ]
             })
             if conflicting_orders:
-                raise OrderConflictException(resource_id)
+                raise OrderConflictException(f"[OrdersHandler] Order={order} "
+                                             f"is conflicting with other orders about resourceID={resource_id}")
 
     async def create_order(self, order: Order) -> Order:
         """
@@ -106,13 +105,15 @@ class OrdersHandler:
 
     async def update_order(self, order: Order) -> bool:
         """
-        Update an existing order. Validates resources and conflicts if not approved.
+        Update an existing order. Validates resources and conflicts. If order in final state brings it back to pending
         """
         existing = await self.get_order(order.id)
 
-        if existing.status != OrderStatus.APPROVED:
-            await self._validate_order_resources(order)
-            await self._check_conflicts(order)
+        await self._validate_order_resources(order)
+        await self._check_conflicts(order)
+
+        if existing.status == OrderStatus.APPROVED or existing.status == OrderStatus.REJECTED:
+            order.status = OrderStatus.PENDING
 
         success = await self._crud.update({"id": order.id}, order)
         if success:
@@ -129,6 +130,9 @@ class OrdersHandler:
             raise PermissionDeniedException("Only admins can approve orders")
 
         order = await self.get_order(order_id)
+
+        await self._check_conflicts(order)
+
         order.status = OrderStatus.APPROVED
         success = await self._crud.update({"id": order_id}, order)
         if success:
@@ -196,7 +200,7 @@ class OrdersHandler:
         """
         Get all orders that contain resources of a specific class/type.
         """
-        resources = await self._resources_handler.get_all(resource_type)
+        resources = await self._resources_handler.get_all_by_resource_class(resource_type)
         resource_ids = [res.id for res in resources if res.id]
         orders = await self._crud.get_all({"resources_ids": {"$in": resource_ids}})
         logger.info(f"[OrdersHandler] Retrieved {len(orders)} order(s) containing resource type '{resource_type.__name__}'")

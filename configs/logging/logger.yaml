@@ -10,13 +10,13 @@ formatters:
 handlers:
   console:
     class: logging.StreamHandler
-    level: DEBUG
+    level: INFO
     formatter: standard
     stream: ext://sys.stdout
 
   file:
     class: logging.handlers.TimedRotatingFileHandler
-    level: INFO
+    level: DEBUG
     formatter: standard
     filename: app.log
     when: midnight
