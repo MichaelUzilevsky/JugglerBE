@@ -49,6 +49,8 @@ class MongoCrud(Generic[T], ICrud[T]):
         Recursively normalize filter dictionary, converting 'id' to '_id' and strings to ObjectId.
         """
         def normalize(d: dict) -> dict:
+            if not d:
+                return d
             new_dict = {}
             for key, value in d.items():
                 if isinstance(value, dict):

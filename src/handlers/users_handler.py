@@ -16,15 +16,15 @@ class UsersHandler:
         """
         self._crud = crud
 
-    async def get_user(self, login: UserLogin) -> Optional[User]:
+    async def get_user_by_username(self, username: str) -> Optional[User]:
         """
         Retrieve a user by their login credentials (username).
         """
-        user =  await self._crud.get({"username": login.username})
+        user =  await self._crud.get({"username": username})
         if user:
-            logger.debug(f"[UsersHandler] Retrieved user with username '{login.username}'")
+            logger.debug(f"[UsersHandler] Retrieved user with username '{username}'")
         else:
-            logger.warning(f"[UsersHandler] User with username '{login.username}' not found")
+            logger.warning(f"[UsersHandler] User with username '{username}' not found")
         return user
 
     async def get_all(self) -> List[User]:
@@ -53,7 +53,7 @@ class UsersHandler:
         """
         Attempt to log in a user with the provided credentials. Raises on failure.
         """
-        user = await self.get_user(login)
+        user = await self.get_user_by_username(login.username)
         if user:
             if user.password == login.password:
                 logger.info(f"[UsersHandler] User '{login.username}' logged in successfully")

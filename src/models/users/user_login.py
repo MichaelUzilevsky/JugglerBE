@@ -1,6 +1,6 @@
-from src.models.abstract.base_data import BaseData
+from pydantic import BaseModel
 
 
-class UserLogin(BaseData):
+class UserLogin(BaseModel):
     username: str
     password: str
