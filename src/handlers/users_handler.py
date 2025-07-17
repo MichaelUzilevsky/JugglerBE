@@ -126,19 +126,23 @@ class UsersHandler:
             f"[UsersHandler] User '{user.username}' (ID: {user.id}) admin check: {'is admin' if is_admin else 'not admin'}")
         return is_admin
 
-    async def set_admin(self, user_id: str) -> bool:
+    async def set_user_role(self, user_id: str, new_role: UserRole) -> bool:
         """
-        Set a user's role to admin by their user ID.
+        Set a user's role to new given role by their user ID.
         """
         user = await self.get_user_by_id(user_id)
         if not user:
-            logger.warning(f"[UsersHandler] Cannot set admin: user with ID '{user_id}' not found")
+            logger.warning(f"[UsersHandler] Cannot set {new_role}: user with ID '{user_id}' not found")
             return False
 
-        user.role = UserRole.ADMIN
+        user.role = new_role
         result = await self.update(user)
         if result:
-            logger.info(f"[UsersHandler] User '{user.username}' (ID: {user.id}) promoted to admin")
+            logger.info(f"[UsersHandler] User '{user.username}' (ID: {user.id}) "
+                        f"{"promoted to admin" if new_role == UserRole.ADMIN else "demoted to user"}")
         else:
-            logger.warning(f"[UsersHandler] Failed to promote user '{user.username}' to admin")
+            logger.warning(f"[UsersHandler] Failed to "
+                           f"{f"promote user '{user.username}' to admin" 
+                           if new_role == UserRole.ADMIN else 
+                           f"demote user '{user.username}' to user"}")
         return result
