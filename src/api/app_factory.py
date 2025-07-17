@@ -1,17 +1,27 @@
-from sys import prefix
-from typing import cast
+from contextlib import asynccontextmanager
+from typing import cast, AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src import logger
 from src.api.middleware.logging import log_requests
-from src.api.v1 import users
+from src.api.v1.routes import users
+from src.db.mongodb.mongodb import MongoDBManager
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator:
+    yield
+    # Shutdown logic
+    logger.info("Shutting Application Down")
+    mongodb = MongoDBManager()
+    await mongodb.close()
 
 class AppFactory:
     @staticmethod
     def create_app() -> FastAPI:
-        app = FastAPI(title="JugglerAPI", version="1.0.0")
+        app = FastAPI(title="JugglerAPI", version="1.0.0", lifespan=lifespan)
 
         # Add Middleware
         app.middleware("http")(log_requests)
