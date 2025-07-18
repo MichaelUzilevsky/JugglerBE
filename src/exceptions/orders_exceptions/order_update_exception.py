@@ -1,0 +1,2 @@
+class OrderUpdateException(Exception):
+    pass

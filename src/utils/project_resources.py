@@ -1,7 +1,7 @@
 from pydoc import locate
 from typing import List, Type, Dict
 
-from src import config, logger
+from src import logger
 from src.models.resources.abstact.base_resource import BaseResource
 
 class ProjectResources:
