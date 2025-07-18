@@ -84,7 +84,7 @@ class ResourcesHandler:
         if count:
             logger.debug(f"[ResourcesHandler] Retrieved {count} record(s) of type {resource_type.__name__}")
         else:
-            logger.warning(f"[ResourcesHandler] No records found for type {resource_type.__name__}")
+            logger.debug(f"[ResourcesHandler] No records found for type {resource_type.__name__}")
         return results
 
     async def get_all(self) -> List[T]:

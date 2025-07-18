@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from sys import prefix
 from typing import cast, AsyncGenerator
 
 from fastapi import FastAPI
@@ -6,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src import logger
 from src.api.middleware.logging import log_requests
-from src.api.v1.routes import users
+from src.api.v1.routes import users, resources
 from src.db.mongodb.mongodb import MongoDBManager
 
 
@@ -35,5 +36,6 @@ class AppFactory:
 
         # Include versioned routes
         app.include_router(users.router, prefix="/api/v1")
+        app.include_router(resources.router, prefix="/api/v1")
 
         return app
