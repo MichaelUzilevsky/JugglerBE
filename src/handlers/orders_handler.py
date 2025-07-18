@@ -2,10 +2,12 @@ from typing import List, Optional, Type
 
 from src import logger
 from src.db.abstract.icrud import ICrud
+from src.exceptions.orders_exceptions.invalid_order_status_exception import InvalidOrderStatusException
 from src.exceptions.orders_exceptions.order_conflict_exception import OrderConflictException
 from src.exceptions.orders_exceptions.order_not_found_exception import OrderNotFoundException
+from src.exceptions.orders_exceptions.order_update_exception import OrderUpdateException
 from src.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
-from src.exceptions.orders_exceptions.permission_denied_exception import PermissionDeniedException
+from src.exceptions.orders_exceptions.unorderable_resource_exception import UnOrderableResourceException
 from src.models.orders.enums.order_status import OrderStatus
 from src.models.orders.order import Order
 from src.models.resources.abstact.base_resource import BaseResource
@@ -48,7 +50,7 @@ class OrdersHandler:
         order = await self._crud.get({"id": order_id})
         if not order:
             logger.error(f"[OrdersHandler] Order with id '{order_id}' not found")
-            raise OrderNotFoundException(order_id)
+            raise OrderNotFoundException(f"No Order found with '{order_id}'")
         logger.info(f"[OrdersHandler] Found order with id '{order_id}'")
         return order
 
@@ -62,7 +64,7 @@ class OrdersHandler:
 
     async def _validate_order_resources(self, order: Order):
         """
-        Ensure all resources in the order exist. Raises ResourceNotFoundException if not found.
+        Ensure all resources in the order exist, and can be ordered. Raises ResourceNotFoundException if not found.
         """
         for resource_id in order.resources_ids:
             resource, resource_type =  await self._resources_handler.get_by_id(resource_id)
@@ -70,7 +72,9 @@ class OrdersHandler:
             if not resource:
                 logger.error(f"[OrdersHandler] Missing resource with id '{resource_id}' in order '{order.id}'")
                 raise ResourceNotFoundException(f"No Resource records found with id={resource_id}")
-
+            if not resource.is_orderable:
+                logger.error(f"[OrdersHandler] Resource with id '{resource_id}' in order '{order.id}' is not Orderable")
+                raise UnOrderableResourceException(f"Resource with id '{resource_id}' is not Orderable")
 
     async def _check_conflicts(self, order: Order):
         """
@@ -88,8 +92,7 @@ class OrdersHandler:
             })
             if conflicting_orders:
                 logger.warning(f"[OrdersHandler] Conflict detected for order '{order.id}' on resource '{resource_id}'")
-                raise OrderConflictException(f"[OrdersHandler] Order={order} "
-                                             f"is conflicting with other orders about resourceID={resource_id}")
+                raise OrderConflictException(f"Conflict detected for order '{order.id}' on resource '{resource_id}'")
 
     async def create_order(self, order: Order) -> Order:
         """
@@ -124,59 +127,29 @@ class OrdersHandler:
             logger.error(f"[OrdersHandler] Failed to update order '{order.id}'")
         return success
 
-    async def approve_order(self, order_id: str, user_id: str) -> bool:
+    async def modify_order_status(self, order_id: str, new_status: OrderStatus) -> Order:
         """
-        Approve an order. Only admins can approve.
+        Modify the status of an order. Only allowed statuses: APPROVED, REJECTED, PENDING.
+        Assumes admin check was done earlier in the call stack.
         """
-        if not await self._users_handler.is_admin(user_id):
-            logger.warning(f"[OrdersHandler] Permission denied to approve order '{order_id}' by user '{user_id}'")
-            raise PermissionDeniedException("Only admins can approve orders")
-
         order = await self.get_order(order_id)
 
-        await self._check_conflicts(order)
+        if new_status == OrderStatus.APPROVED:
+            await self._check_conflicts(order)
 
-        order.status = OrderStatus.APPROVED
+        if new_status not in (OrderStatus.APPROVED, OrderStatus.REJECTED, OrderStatus.PENDING):
+            logger.warning(f"[OrdersHandler] Unsupported status '{new_status}' for order '{order_id}'")
+            raise InvalidOrderStatusException(f"Unsupported status: {new_status}")
+
+        order.status = new_status
         success = await self._crud.update({"id": order_id}, order)
-        if success:
-            logger.info(f"[OrdersHandler] Approved order '{order_id}'")
-        else:
-            logger.error(f"[OrdersHandler] Failed to approve order '{order_id}'")
-        return success
 
-    async def reject_order(self, order_id: str, user_id: str) -> bool:
-        """
-        Reject an order. Only admins can reject.
-        """
-        if not await self._users_handler.is_admin(user_id):
-            logger.warning(f"[OrdersHandler] Permission denied to reject order '{order_id}' by user '{user_id}'")
-            raise PermissionDeniedException("Only admins can reject orders")
+        if not success:
+            logger.error(f"[OrdersHandler] Failed to update order '{order_id}' to status '{new_status}'")
+            raise OrderUpdateException("Failed to update order status")
 
-        order = await self.get_order(order_id)
-        order.status = OrderStatus.REJECTED
-        success = await self._crud.update({"id": order_id}, order)
-        if success:
-            logger.info(f"[OrdersHandler] Rejected order '{order_id}'")
-        else:
-            logger.error(f"[OrdersHandler] Failed to reject order '{order_id}'")
-        return success
-
-    async def move_order_to_pending(self, order_id: str, user_id: str) -> bool:
-        """
-        Move an order to pend status. Only admins can perform this action.
-        """
-        if not await self._users_handler.is_admin(user_id):
-            logger.warning(f"[OrdersHandler] Permission denied to move order '{order_id}' to pending by user '{user_id}'")  # [MODIFIED]
-            raise PermissionDeniedException("Only admins can move orders to pending")
-
-        order = await self.get_order(order_id)
-        order.status = OrderStatus.PENDING
-        success = await self._crud.update({"id": order_id}, order)
-        if success:
-            logger.info(f"[OrdersHandler] Moved order '{order_id}' to pending")
-        else:
-            logger.error(f"[OrdersHandler] Failed to move order '{order_id}' to pending")
-        return success
+        logger.info(f"[OrdersHandler] Order '{order_id}' status updated to '{new_status}'")
+        return order
 
     async def delete_order(self, order_id: str) -> bool:
         """

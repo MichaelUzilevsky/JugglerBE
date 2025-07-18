@@ -1,0 +1,2 @@
+class UnOrderableResourceException(Exception):
+    pass

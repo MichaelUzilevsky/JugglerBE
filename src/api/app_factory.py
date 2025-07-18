@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-from sys import prefix
 from typing import cast, AsyncGenerator
 
 from fastapi import FastAPI
@@ -7,16 +6,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src import logger
 from src.api.middleware.logging import log_requests
-from src.api.v1.routes import users, resources
+from src.api.v1.routes import users, resources, orders
 from src.db.mongodb.mongodb import MongoDBManager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
-    yield
-    # Shutdown logic
-    logger.info("Shutting Application Down")
+
+    logger.info("Starting Application...")
     mongodb = MongoDBManager()
+
+    yield
+
+    logger.info("Shutting Application Down...")
     await mongodb.close()
 
 class AppFactory:
@@ -37,5 +39,6 @@ class AppFactory:
         # Include versioned routes
         app.include_router(users.router, prefix="/api/v1")
         app.include_router(resources.router, prefix="/api/v1")
+        app.include_router(orders.router, prefix="/api/v1")
 
         return app
