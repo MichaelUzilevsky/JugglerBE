@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException
 
+from src import logger
 from src.api.auth.jwt_auth import get_current_user_id
 from src.api.dependencies.users import get_users_handler
 from src.handlers.users_handler import UsersHandler
-from src.models.orders.order import Order
 from src.models.users.enums.user_role import UserRole
 from src.models.users.user import User
 
@@ -22,14 +22,6 @@ async def require_admin(
         user: User = Depends(get_current_user),
 ) -> User:
     if not user.role == UserRole.ADMIN:
+        logger.warning(f"User with user_id='{user.id}' tried accessing an admin only route")
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
-
-
-async def verify_order_owner_or_admin(
-        order: Order,
-        requesting_user=Depends(get_current_user),
-):
-    if order.user_id != requesting_user.id and requesting_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Can not access or modify other users' orders")
-    return True

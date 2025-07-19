@@ -3,7 +3,8 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.api.dependencies.auth import get_current_user, require_admin, verify_order_owner_or_admin
+from src import logger
+from src.api.dependencies.auth import get_current_user, require_admin
 from src.api.dependencies.orders import get_orders_handler
 from src.exceptions.orders_exceptions.invalid_order_status_exception import InvalidOrderStatusException
 from src.exceptions.orders_exceptions.order_conflict_exception import OrderConflictException
@@ -14,6 +15,7 @@ from src.exceptions.orders_exceptions.unorderable_resource_exception import UnOr
 from src.handlers.orders_handler import OrdersHandler
 from src.models.orders.enums.order_status import OrderStatus
 from src.models.orders.order import Order
+from src.models.users.enums.user_role import UserRole
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -50,8 +52,12 @@ async def get_orders_in_range(
 async def get_user_orders(
         user_id: str,
         handler: OrdersHandler = Depends(get_orders_handler),
-        _=Depends(verify_order_owner_or_admin)
+        requesting_user=Depends(get_current_user)
 ):
+    if user_id != requesting_user.id and requesting_user.role != UserRole.ADMIN:
+        logger.warning(
+            f"User with user_id='{requesting_user.id}' tried accessing other user's (user_id='{user_id}') orders")
+        raise HTTPException(status_code=403, detail="Not authorized to access this user orders")
     return await handler.get_users_orders(user_id)
 
 
@@ -74,8 +80,12 @@ async def create_order(
 async def update_order(
         order: Order,
         handler: OrdersHandler = Depends(get_orders_handler),
-        _=Depends(verify_order_owner_or_admin)
+        requesting_user=Depends(get_current_user)
 ):
+    if order.user_id != requesting_user.id and requesting_user.role != UserRole.ADMIN:
+        logger.warning(
+            f"User with user_id='{requesting_user.id}' tried updating other user's (user_id='{order.user_id}') order")
+        raise HTTPException(status_code=403, detail="Not authorized to modify this order")
     try:
         existing_order = await handler.get_order(order.id)
         order.status = existing_order.status
@@ -131,8 +141,17 @@ async def set_order_pending(
 async def delete_order(
         order_id: str,
         handler: OrdersHandler = Depends(get_orders_handler),
-        _=Depends(verify_order_owner_or_admin)
+        requesting_user=Depends(get_current_user)
 ):
+    order = await handler.get_order(order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail=f"No order with order_id='{order_id}' was found")
+
+    if order.user_id != requesting_user.id and requesting_user.role != UserRole.ADMIN:
+        logger.warning(
+            f"User with user_id='{requesting_user.id}' tried deleting other user's (user_id='{order.user_id}') order")
+        raise HTTPException(status_code=403, detail="Not authorized to delete this order")
+
     try:
         deleted = await handler.delete_order(order_id)
         if not deleted:
