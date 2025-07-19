@@ -1,31 +1,49 @@
+
 # Juggler BackEnd
 
 ## Overview
-Juggler BackEnd is a modular Python backend designed to manage users, resources, and orders for complex scheduling and resource allocation systems. It features a clean architecture, async operations, MongoDB integration, and robust configuration and logging support.
+Juggler BackEnd is a modular backend built with **FastAPI** for scheduling and resource allocation. It features async operations, JWT authentication, MongoDB integration, and a scalable, maintainable architecture.
 
 ## Features
-- **User Management**: Sign up, login, update, delete, and admin role assignment.
-- **Resource Management**: CRUD operations for various resource types, dynamic resource class loading, and duplicate name protection.
-- **Order Management**: Create, update, approve, reject, and query orders with conflict detection and time-range filtering.
-- **MongoDB Integration**: Async database operations using Motor and Pydantic models.
-- **Configurable**: Environment-based configuration loading and support for .env files.
-- **Structured Logging**: YAML-based logging configuration with file output.
-- **Exception Handling**: Custom exceptions for users, resources, and orders.
+- **User Management**
+  - Sign up, login
+  - JWT-based authentication (access tokens with user ID and expiration)
+  - Admins can promote/demote users and delete accounts
+  - No password hashing yet (planned)
+- **Order Management**
+  - Users create/update orders
+  - Orders require admin approval
+  - Only creators or admins can update orders
+  - Conflict detection prevents scheduling overlaps
+  - Filter orders by time and approval status
+- **Resource Management**
+  - Resource models are statically defined by developers
+  - Each model inherits from a base resource
+  - Schemas are dynamically exposed to the frontend for auto-generated forms
+- **Authentication & Authorization**
+  - JWT tokens issued at login (sub=user ID, exp=expiration)
+  - Dependency-based access control (admin-only/user-specific routes)
+  - No refresh tokens yet (planned)
+- **Architecture & Codebase**
+  - Modular, scalable codebase
+  - Lifespan management with AppFactory
+  - Async MongoDB via Motor
+  - Pydantic models for validation
+  - Logging via YAML config and rotating log files
 
 ## Project Structure
 ```
 JugglerBE/
-├── main.py                  # Entry point
-├── requirements.txt         # Dependencies
-├── configs/                 # App and logging configs
-├── logs/                    # Log files
+├── main.py
+├── configs/
+├── logs/
 ├── src/
-│   ├── base/                # Config and logger loaders
-│   ├── db/                  # Database and CRUD logic
-│   ├── exceptions/          # Custom exception classes
-│   ├── handlers/            # Business logic for users, resources, orders
-│   ├── models/              # Data models for users, resources, orders
-│   └── utils/               # Utility functions
+│   ├── api/              # FastAPI routes, dependencies, middleware
+│   ├── base/             # Configuration and logger setup
+│   ├── db/               # MongoDB management
+│   ├── handlers/         # Business logic for users, orders, resources
+│   ├── models/           # Pydantic models
+│   └── exceptions/       # Custom exceptions
 ```
 
 ## Getting Started
@@ -34,42 +52,39 @@ JugglerBE/
    pip install -r requirements.txt
    ```
 2. **Configure environment**:
-   - Edit `configs/app/base.yaml` and environment-specific YAMLs.
+   - Edit YAML files in `configs/app/` for your environment (`base.yaml`, `dev.yaml`, `prod.yaml`).
    - Optionally create a `.env` file for secrets.
 3. **Configure logging**:
    - Edit `configs/logging/logger.yaml` as needed.
 4. **Run the application**:
    ```bash
-   python main.py
+   uvicorn main:app --reload
    ```
 
 ## Configuration
-- **App Config**: Located in `configs/app/`. Supports multiple environments (`base.yaml`, `dev.yaml`, `prod.yaml`).
+- **App Config**: Located in `configs/app/`. Supports multiple environments.
 - **Logging**: Configured via `configs/logging/logger.yaml`.
 - **MongoDB**: Connection details in config files and `.env`.
 
-## Key Modules
-- `src/base/config_loader.py`: Loads and merges configuration files.
-- `src/base/logger_loader.py`: Sets up logging from YAML config.
-- `src/db/mongodb/mongo_crud.py`: Generic async CRUD operations for MongoDB collections.
-- `src/handlers/users_handler.py`: User-related business logic.
-- `src/handlers/resources_handler.py`: Resource-related business logic.
-- `src/handlers/orders_handler.py`: Order-related business logic and conflict detection.
-- `src/utils/system_resources.py`: Dynamic resource class loading from config.
+## API Overview
+- `/api/v1/users/`: login, signup, admin actions
+- `/api/v1/orders/`: create/update/get user-specific orders
+- `/api/v1/resources/`: expose schemas for resource models
 
 ## Exception Handling
-Custom exceptions are defined for:
-- User login and registration errors
+Custom exceptions for:
+- User login/registration errors
 - Resource duplication
-- Order conflicts, not found, and permission issues
+- Order conflicts, not found, permission issues
 
 ## Logging
-Logs are written to the `logs/` directory. Logging is configured via YAML and supports file rotation and formatting.
+Logs are written to the `logs/` directory. Logging is configured via YAML and supports file rotation and formatting. Middleware logs requests and errors.
 
 ## Extending
-- Add new resource types by creating new model classes and updating config.
-- Add new business logic by extending handler classes.
-- Add new exception types in the `exceptions/` directory.
+- Add new resource types by creating new model classes and updating config
+- Add new business logic by extending handler classes
+- Add new exception types in the `exceptions/` directory
+
 
 ## License
 MIT License
