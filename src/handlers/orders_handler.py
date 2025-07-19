@@ -12,7 +12,7 @@ from src.handlers.resources_handler import ResourcesHandler
 from src.handlers.users_handler import UsersHandler
 from src.models.orders.enums.order_status import OrderStatus
 from src.models.orders.order import Order
-from src.models.resources.abstact.base_resource import BaseResource
+from src.models.resources.abstract.base_resource import BaseResource
 
 
 class OrdersHandler:

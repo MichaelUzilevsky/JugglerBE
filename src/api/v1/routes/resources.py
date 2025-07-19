@@ -7,7 +7,7 @@ from src.api.dependencies.resources import get_resources_handler
 from src.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
 from src.exceptions.resources_exceptions.duplicate_resource_name_exception import DuplicateResourceNameException
 from src.handlers.resources_handler import ResourcesHandler
-from src.models.resources.abstact.base_resource import BaseResource
+from src.models.resources.abstract.base_resource import BaseResource
 
 router = APIRouter(prefix="/resources", tags=["Resources"])
 

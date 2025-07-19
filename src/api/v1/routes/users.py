@@ -6,7 +6,7 @@ from starlette.responses import JSONResponse
 from src.api.auth.jwt_auth import create_access_token
 from src.api.dependencies.auth import require_admin
 from src.api.dependencies.users import get_users_handler
-from src.exceptions.users_exceptions.login_failed_exeption import LoginFailedException
+from src.exceptions.users_exceptions.login_failed_exception import LoginFailedException
 from src.exceptions.users_exceptions.username_already_exists_exception import UsernameAlreadyExistsException
 from src.handlers.users_handler import UsersHandler
 from src.models.users.enums.user_role import UserRole

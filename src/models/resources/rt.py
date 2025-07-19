@@ -1,4 +1,4 @@
-from src.models.resources.abstact.base_resource import BaseResource
+from src.models.resources.abstract.base_resource import BaseResource
 from src.models.resources.enums.rt_locations import RtLocations
 
 
