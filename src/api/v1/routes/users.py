@@ -13,6 +13,7 @@ from src.models.users.enums.user_role import UserRole
 from src.models.users.public_users.user_response import UserResponse
 from src.models.users.public_users.user_signup_request import UserSignupRequest
 from src.models.users.user_login import UserLogin
+from src.utils.password_security import hash_password
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -33,7 +34,7 @@ async def signup(
 ):
     try:
         user_model = signup_data.to_model()
-        user_model.role = UserRole.USER
+        user_model.password = hash_password(user_model.password)
         created_user = await handler.sign_up(user_model)
     except UsernameAlreadyExistsException as e:
         raise HTTPException(status_code=400, detail=str(e))

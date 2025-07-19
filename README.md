@@ -53,7 +53,11 @@ JugglerBE/
    ```
 2. **Configure environment**:
    - Edit YAML files in `configs/app/` for your environment (`base.yaml`, `dev.yaml`, `prod.yaml`).
-   - Optionally create a `.env` file for secrets.
+   - Optionally create a `.env` file or **configure** system envs, for secrets and app production level.
+   ```bash
+    APP_ENV=production-level
+    JWT_SECRET_KEY=secret-key
+   ```
 3. **Configure logging**:
    - Edit `configs/logging/logger.yaml` as needed.
 4. **Run the application**:
@@ -65,6 +69,7 @@ JugglerBE/
 - **App Config**: Located in `configs/app/`. Supports multiple environments.
 - **Logging**: Configured via `configs/logging/logger.yaml`.
 - **MongoDB**: Connection details in config files and `.env`.
+
 
 ## API Overview
 - `/api/v1/users/`: login, signup, admin actions
