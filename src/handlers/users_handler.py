@@ -7,6 +7,7 @@ from src.exceptions.users_exceptions.username_already_exists_exception import Us
 from src.models.users.enums.user_role import UserRole
 from src.models.users.user import User
 from src.models.users.user_login import UserLogin
+from src.utils.password_security import verify_password
 
 
 class UsersHandler:
@@ -55,7 +56,7 @@ class UsersHandler:
         """
         user = await self.get_user_by_username(login.username)
         if user:
-            if user.password == login.password:
+            if verify_password(login.password, user.password):
                 logger.info(f"[UsersHandler] User '{login.username}' logged in successfully")
                 return user
             else:
