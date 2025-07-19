@@ -5,7 +5,7 @@ from src.db.abstract.icrud import ICrud
 from src.db.mongodb.mongo_crud import MongoCrud
 from src.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
 from src.exceptions.resources_exceptions.duplicate_resource_name_exception import DuplicateResourceNameException
-from src.models.resources.abstact.base_resource import BaseResource
+from src.models.resources.abstract.base_resource import BaseResource
 from src.utils.project_resources import ProjectResources
 
 T = TypeVar("T", bound=BaseResource)
