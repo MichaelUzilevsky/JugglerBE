@@ -1,8 +1,10 @@
 import os
-import yaml
 from pathlib import Path
 from typing import Any
+
+import yaml
 from dotenv import load_dotenv
+
 
 class ConfigLoader:
     _instance = None
@@ -48,8 +50,8 @@ class ConfigLoader:
         result = base.copy()
         for key, value in override.items():
             if (
-                key in result and isinstance(result[key], dict)
-                and isinstance(value, dict)
+                    key in result and isinstance(result[key], dict)
+                    and isinstance(value, dict)
             ):
                 result[key] = self._deep_merge_dicts(result[key], value)
             else:

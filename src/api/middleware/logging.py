@@ -1,5 +1,6 @@
-from fastapi import Request
 import time
+
+from fastapi import Request
 
 from src import logger
 

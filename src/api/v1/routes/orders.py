@@ -14,8 +14,6 @@ from src.exceptions.orders_exceptions.unorderable_resource_exception import UnOr
 from src.handlers.orders_handler import OrdersHandler
 from src.models.orders.enums.order_status import OrderStatus
 from src.models.orders.order import Order
-from src.models.users.enums.user_role import UserRole
-from src.models.users.user import User
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 

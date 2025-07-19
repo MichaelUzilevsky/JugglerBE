@@ -4,9 +4,9 @@ from src import logger
 from src.db.abstract.icrud import ICrud
 from src.exceptions.users_exceptions.login_failed_exeption import LoginFailedException
 from src.exceptions.users_exceptions.username_already_exists_exception import UsernameAlreadyExistsException
+from src.models.users.enums.user_role import UserRole
 from src.models.users.user import User
 from src.models.users.user_login import UserLogin
-from src.models.users.enums.user_role import UserRole
 
 
 class UsersHandler:
@@ -20,7 +20,7 @@ class UsersHandler:
         """
         Retrieve a user by their login credentials (username).
         """
-        user =  await self._crud.get({"username": username})
+        user = await self._crud.get({"username": username})
         if user:
             logger.debug(f"[UsersHandler] Retrieved user with username '{username}'")
         else:
@@ -31,7 +31,7 @@ class UsersHandler:
         """
         Retrieve all users in the system.
         """
-        users =  await self._crud.get_all()
+        users = await self._crud.get_all()
         if users:
             logger.debug(f"[UsersHandler] Retrieved {len(users)} user(s) from the system")
         else:
@@ -142,7 +142,7 @@ class UsersHandler:
                         f"{"promoted to admin" if new_role == UserRole.ADMIN else "demoted to user"}")
         else:
             logger.warning(f"[UsersHandler] Failed to "
-                           f"{f"promote user '{user.username}' to admin" 
-                           if new_role == UserRole.ADMIN else 
+                           f"{f"promote user '{user.username}' to admin"
+                           if new_role == UserRole.ADMIN else
                            f"demote user '{user.username}' to user"}")
         return result

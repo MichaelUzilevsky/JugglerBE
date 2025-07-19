@@ -1,5 +1,6 @@
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection, AsyncIOMotorDatabase
 from typing import Optional
+
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection, AsyncIOMotorDatabase
 from pymongo.errors import ServerSelectionTimeoutError
 
 from src import config, logger

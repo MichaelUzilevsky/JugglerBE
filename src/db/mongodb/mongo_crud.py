@@ -1,13 +1,14 @@
 from typing import Type, TypeVar, Generic, Optional, Any, List, Dict
 
 from bson import ObjectId
-from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorCollection
+from pydantic import BaseModel
 
 from src.db.abstract.icrud import ICrud
 from src.db.mongodb.mongodb import MongoDBManager
 
 T = TypeVar("T", bound=BaseModel)
+
 
 class MongoCrud(Generic[T], ICrud[T]):
     def __init__(self, model: Type[T], collection_name: str) -> None:
@@ -48,6 +49,7 @@ class MongoCrud(Generic[T], ICrud[T]):
         """
         Recursively normalize filter dictionary, converting 'id' to '_id' and strings to ObjectId.
         """
+
         def normalize(d: dict) -> dict:
             if not d:
                 return d

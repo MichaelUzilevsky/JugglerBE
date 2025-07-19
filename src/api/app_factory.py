@@ -12,7 +12,6 @@ from src.db.mongodb.mongodb import MongoDBManager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
-
     logger.info("Starting Application...")
     mongodb = MongoDBManager()
 
@@ -20,6 +19,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     logger.info("Shutting Application Down...")
     await mongodb.close()
+
 
 class AppFactory:
     @staticmethod

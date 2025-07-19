@@ -8,11 +8,11 @@ from src.exceptions.orders_exceptions.order_not_found_exception import OrderNotF
 from src.exceptions.orders_exceptions.order_update_exception import OrderUpdateException
 from src.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
 from src.exceptions.orders_exceptions.unorderable_resource_exception import UnOrderableResourceException
+from src.handlers.resources_handler import ResourcesHandler
+from src.handlers.users_handler import UsersHandler
 from src.models.orders.enums.order_status import OrderStatus
 from src.models.orders.order import Order
 from src.models.resources.abstact.base_resource import BaseResource
-from src.handlers.resources_handler import ResourcesHandler
-from src.handlers.users_handler import UsersHandler
 
 
 class OrdersHandler:
@@ -67,7 +67,7 @@ class OrdersHandler:
         Ensure all resources in the order exist, and can be ordered. Raises ResourceNotFoundException if not found.
         """
         for resource_id in order.resources_ids:
-            resource, resource_type =  await self._resources_handler.get_by_id(resource_id)
+            resource, resource_type = await self._resources_handler.get_by_id(resource_id)
 
             if not resource:
                 logger.error(f"[OrdersHandler] Missing resource with id '{resource_id}' in order '{order.id}'")

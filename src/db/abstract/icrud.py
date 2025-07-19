@@ -3,6 +3,7 @@ from typing import TypeVar, Generic, Optional, Any, List
 
 T = TypeVar("T")
 
+
 class ICrud(ABC, Generic[T]):
     @abstractmethod
     async def create(self, item: T) -> T:
