@@ -33,6 +33,7 @@ async def signup(
 ):
     try:
         user_model = signup_data.to_model()
+        user_model.role = UserRole.USER
         created_user = await handler.sign_up(user_model)
     except UsernameAlreadyExistsException as e:
         raise HTTPException(status_code=400, detail=str(e))
