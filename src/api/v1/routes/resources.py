@@ -2,12 +2,12 @@ from typing import List, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.api.dependencies.auth import get_current_user
 from src.api.dependencies.resources import get_resources_handler
+from src.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
+from src.exceptions.resources_exceptions.duplicate_resource_name_exception import DuplicateResourceNameException
 from src.handlers.resources_handler import ResourcesHandler
 from src.models.resources.abstact.base_resource import BaseResource
-
-from src.exceptions.resources_exceptions.duplicate_resource_name_exception import DuplicateResourceNameException
-from src.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
 
 router = APIRouter(prefix="/resources", tags=["Resources"])
 
@@ -46,15 +46,19 @@ def resolve_property_type(prop: dict, definitions: dict) -> Dict[str, Any]:
 
 
 @router.get("/", response_model=List[Dict])
-async def get_all_resources(handler: ResourcesHandler = Depends(get_resources_handler)):
+async def get_all_resources(
+        handler: ResourcesHandler = Depends(get_resources_handler),
+        _=Depends(get_current_user)
+):
     resources = await handler.get_all()
     return [serialize_resource(r) for r in resources]
 
 
 @router.get("/by-type", response_model=List[Dict])
 async def get_resources_by_type(
-    resource_type: str = Query(..., description="Resource class name like 'Rt', 'Station', etc."),
-    handler: ResourcesHandler = Depends(get_resources_handler)
+        resource_type: str = Query(..., description="Resource class name like 'Rt', 'Station', etc."),
+        handler: ResourcesHandler = Depends(get_resources_handler),
+        _=Depends(get_current_user)
 ):
     resource_classes = {cls.__name__: cls for cls in handler.resource_classes}
     resource_class = resource_classes.get(resource_type)
@@ -67,12 +71,18 @@ async def get_resources_by_type(
 
 
 @router.get("/types", response_model=List[str])
-async def get_all_resource_types(handler: ResourcesHandler = Depends(get_resources_handler)):
+async def get_all_resource_types(
+        handler: ResourcesHandler = Depends(get_resources_handler),
+        _=Depends(get_current_user)
+):
     return [cls.__name__ for cls in handler.resource_classes]
 
 
 @router.get("/schemas", response_model=Dict[str, Any])
-async def get_forms_metadata(handler: ResourcesHandler = Depends(get_resources_handler)) -> Dict[str, Any]:
+async def get_forms_metadata(
+        handler: ResourcesHandler = Depends(get_resources_handler),
+        _=Depends(get_current_user)
+):
     metadata = {}
 
     for cls in handler.resource_classes:
@@ -101,9 +111,10 @@ async def get_forms_metadata(handler: ResourcesHandler = Depends(get_resources_h
 
 @router.post("/create", response_model=Dict, status_code=status.HTTP_201_CREATED)
 async def create_resource(
-    resource_type: str = Query(..., description="Resource type to create (e.g., 'Rt', 'Station')"),
-    handler: ResourcesHandler = Depends(get_resources_handler),
-    body: dict = None
+        resource_type: str = Query(..., description="Resource type to create (e.g., 'Rt', 'Station')"),
+        handler: ResourcesHandler = Depends(get_resources_handler),
+        _=Depends(get_current_user),
+        body: dict = None
 ):
     resource_classes = {cls.__name__: cls for cls in handler.resource_classes}
     cls = resource_classes.get(resource_type)
@@ -122,8 +133,9 @@ async def create_resource(
 
 @router.patch("/update", response_model=Dict)
 async def update_resource(
-    handler: ResourcesHandler = Depends(get_resources_handler),
-    body: dict = None
+        handler: ResourcesHandler = Depends(get_resources_handler),
+        _=Depends(get_current_user),
+        body: dict = None
 ):
     try:
         item_id = body.get("id")
@@ -146,8 +158,9 @@ async def update_resource(
 
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_resource(
-    resource_id: str,
-    handler: ResourcesHandler = Depends(get_resources_handler)
+        resource_id: str,
+        handler: ResourcesHandler = Depends(get_resources_handler),
+        _=Depends(get_current_user)
 ):
     try:
         deleted = await handler.delete(resource_id)
