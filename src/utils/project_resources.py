@@ -4,6 +4,7 @@ from typing import List, Type, Dict
 from src import logger
 from src.models.resources.abstact.base_resource import BaseResource
 
+
 class ProjectResources:
     @staticmethod
     def _get_resource_class_by_fullname(class_path: str):
