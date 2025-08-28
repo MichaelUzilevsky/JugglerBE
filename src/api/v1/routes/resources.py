@@ -17,34 +17,6 @@ def serialize_resource(resource: BaseResource) -> Dict:
     return data
 
 
-def resolve_property_type(prop: dict, definitions: dict) -> Dict[str, Any]:
-    """
-    Resolve a property's type and enum values (if any), including $ref resolution.
-    """
-    if "$ref" in prop:
-        ref_path = prop["$ref"].split("/")[-1]
-        ref_def = definitions.get(ref_path)
-        if not ref_def:
-            return {"type": "string"}
-        return {
-            "type": ref_def.get("type", "string"),
-            "enum": ref_def.get("enum"),
-            "title": ref_def.get("title", ref_path)
-        }
-
-    if "anyOf" in prop:
-        # Handle nullable types
-        non_null = [item for item in prop["anyOf"] if item.get("type") != "null"]
-        if non_null:
-            return {"type": non_null[0].get("type", "string")}
-
-    return {
-        "type": prop.get("type", "string"),
-        "enum": prop.get("enum"),
-        "title": prop.get("title")
-    }
-
-
 @router.get("/", response_model=List[Dict])
 async def get_all_resources(
         handler: ResourcesHandler = Depends(get_resources_handler),
@@ -76,37 +48,6 @@ async def get_all_resource_types(
         _=Depends(get_current_user)
 ):
     return [cls.__name__ for cls in handler.resource_classes]
-
-
-@router.get("/schemas", response_model=Dict[str, Any])
-async def get_forms_metadata(
-        handler: ResourcesHandler = Depends(get_resources_handler),
-        _=Depends(get_current_user)
-):
-    metadata = {}
-
-    for cls in handler.resource_classes:
-        schema = cls.model_json_schema()
-        props = schema.get("properties", {})
-        defs = schema.get("$defs", {})
-        required = set(schema.get("required", []))
-
-        fields: List[Dict[str, Any]] = []
-
-        for name, prop in props.items():
-            resolved = resolve_property_type(prop, defs)
-
-            fields.append({
-                "name": name,
-                "type": resolved["type"],
-                "title": resolved.get("title", name),
-                "required": name in required,
-                "enum": resolved.get("enum")
-            })
-
-        metadata[cls.__name__] = {"fields": fields}
-
-    return metadata
 
 
 @router.post("/create", response_model=Dict, status_code=status.HTTP_201_CREATED)

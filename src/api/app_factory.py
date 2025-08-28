@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src import logger
 from src.api.middleware.logging import log_requests
-from src.api.v1.routes import users, resources, orders
+from src.api.v1.routes import users, resources, orders, metadata
 from src.db.mongodb.mongodb import MongoDBManager
 
 
@@ -40,5 +40,6 @@ class AppFactory:
         app.include_router(users.router, prefix="/api/v1")
         app.include_router(resources.router, prefix="/api/v1")
         app.include_router(orders.router, prefix="/api/v1")
+        app.include_router(metadata.router, prefix="/api/v1")
 
         return app
