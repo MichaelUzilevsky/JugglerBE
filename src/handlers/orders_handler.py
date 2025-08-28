@@ -81,10 +81,10 @@ class OrdersHandler:
                     f"Allowed states: {[state.value for state in allowed_states]}"
                 )
 
-    async def _check_conflicts(self, order: Order):
+    async def _check_conflicts(self, order: Order) -> List[str]:
         """
         Check for conflicting approved orders for the same resources and time range.
-        Raises OrderConflictException if a conflict is found.
+        return list of conflicting order ids, or [] in no conflicts found
         """
         for resource_id in order.resources_ids:
             conflicting_orders = await self._crud.get_all({
@@ -97,14 +97,19 @@ class OrdersHandler:
             })
             if conflicting_orders:
                 logger.warning(f"[OrdersHandler] Conflict detected for order '{order.id}' on resource '{resource_id}'")
-                raise OrderConflictException(f"Conflict detected for order '{order.id}' on resource '{resource_id}'")
+                return [order.id for order in conflicting_orders]
+            logger.debug(f"[OrdersHandler] No conflicts detected for order '{order.id}'")
+            return []
 
     async def create_order(self, order: Order) -> Order:
         """
         Validate and create a new order. Raises on conflict or missing resources.
         """
         await self._validate_order_resources(order)
-        await self._check_conflicts(order)
+        conflicting_orders = await self._check_conflicts(order)
+
+        if conflicting_orders:
+            order.conflicts_with = conflicting_orders
 
         created = await self._crud.create(order)
         if created:
@@ -120,7 +125,11 @@ class OrdersHandler:
         existing = await self.get_order(order.id)
 
         await self._validate_order_resources(order)
-        await self._check_conflicts(order)
+
+        conflicting_orders = await self._check_conflicts(order)
+
+        if conflicting_orders:
+            order.conflicts_with = conflicting_orders
 
         if existing.status == OrderStatus.APPROVED or existing.status == OrderStatus.REJECTED:
             order.status = OrderStatus.PENDING
@@ -140,7 +149,12 @@ class OrdersHandler:
         order = await self.get_order(order_id)
 
         if new_status == OrderStatus.APPROVED:
-            await self._check_conflicts(order)
+            conflicting_orders = await self._check_conflicts(order)
+            if conflicting_orders:
+                raise OrderConflictException(
+                    f"Cannot approve order '{order_id}'. Conflicts with already approved orders: "
+                    f"{conflicting_orders}"
+                )
 
         if new_status not in (OrderStatus.APPROVED, OrderStatus.REJECTED, OrderStatus.PENDING):
             logger.warning(f"[OrdersHandler] Unsupported status '{new_status}' for order '{order_id}'")

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import Field
 
@@ -15,3 +15,4 @@ class Order(BaseData):
     status: OrderStatus = OrderStatus.CREATED
     start_time: datetime
     end_time: datetime
+    conflicts_with: Optional[List[str]] = []
