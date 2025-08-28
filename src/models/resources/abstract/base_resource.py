@@ -6,7 +6,6 @@ from src.models.resources.enums.resource_state import ResourceState
 
 class BaseResource(BaseData):
     name: str
-    is_orderable: bool = False
     resource_state: ResourceState
     resource_type: str = Field(default_factory=lambda: "BaseResource")
 
