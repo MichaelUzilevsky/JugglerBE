@@ -12,6 +12,7 @@ from src.handlers.resources_handler import ResourcesHandler
 from src.handlers.users_handler import UsersHandler
 from src.models.orders.enums.order_status import OrderStatus
 from src.models.orders.order import Order
+from src.models.orders.rules import ORDER_PURPOSE_RULES
 from src.models.resources.abstract.base_resource import BaseResource
 
 
@@ -72,9 +73,13 @@ class OrdersHandler:
             if not resource:
                 logger.error(f"[OrdersHandler] Missing resource with id '{resource_id}' in order '{order.id}'")
                 raise ResourceNotFoundException(f"No Resource records found with id={resource_id}")
-            if not resource.is_orderable:
-                logger.error(f"[OrdersHandler] Resource with id '{resource_id}' in order '{order.id}' is not Orderable")
-                raise UnOrderableResourceException(f"Resource with id '{resource_id}' is not Orderable")
+            allowed_states = ORDER_PURPOSE_RULES.get(order.purpose, [])
+            if resource.resource_state not in allowed_states:
+                raise UnOrderableResourceException(
+                    f"Resource {resource.id} is in '{resource.resource_state.value}' state, "
+                    f"which is not allowed for '{order.purpose.value}' purpose. "
+                    f"Allowed states: {[state.value for state in allowed_states]}"
+                )
 
     async def _check_conflicts(self, order: Order):
         """
