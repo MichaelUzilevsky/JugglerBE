@@ -10,6 +10,16 @@ mongodb:
       pandemic_routes: PandemicRoutes
       rts: RTS
 
+postgresql:
+  user: CHANGE_ME
+  password: CHANGE_ME
+  host: localhost
+  port: 5432
+  database: juggler
+  echo: true
+  pool_size: 10
+  max_overflow: 20
+
 jwt_tokens:
   secret_key: ${JWT_SECRET_KEY}
   algorithm: HS256

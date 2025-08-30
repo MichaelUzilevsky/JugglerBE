@@ -1,2 +1,10 @@
 mongodb:
   uri: mongodb://localhost:27017
+
+postgresql:
+  user: juggler
+  password: juggler
+  host: localhost
+  port: 5432
+  database: juggler
+  echo: true
