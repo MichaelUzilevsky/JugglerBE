@@ -24,7 +24,7 @@ handlers:
     encoding: utf8
 
 loggers:
-  src:
+  app:
     level: DEBUG
     handlers: [console, file]
     propagate: false

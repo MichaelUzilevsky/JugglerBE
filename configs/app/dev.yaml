@@ -1,5 +1,5 @@
 mongodb:
-  uri: mongodb://localhost:27017
+  uri: managers://localhost:27017
 
 postgresql:
   user: juggler
@@ -7,4 +7,4 @@ postgresql:
   host: localhost
   port: 5432
   database: juggler
-  echo: true
+  echo: false
