@@ -36,7 +36,7 @@ class AppFactory:
         # Include versioned routes
         app.include_router(users.router, prefix="/api/v1")
         app.include_router(resources.router, prefix="/api/v1")
-        # app.include_router(orders.router, prefix="/api/v1")
+        app.include_router(orders.router, prefix="/api/v1")
         # app.include_router(metadata.router, prefix="/api/v1")
 
         return app

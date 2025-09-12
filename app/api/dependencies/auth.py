@@ -14,7 +14,7 @@ async def get_current_user(
 ) -> UserRead:
     user = await user_service.get_by_username(username)
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=401, detail="User not found. Must be logged in")
     return user
 
 
