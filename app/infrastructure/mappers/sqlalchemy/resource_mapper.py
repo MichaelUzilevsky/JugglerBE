@@ -1,4 +1,6 @@
-from typing import Union
+from typing import Union, Annotated
+
+from pydantic import Field
 
 from app.db.sqlalchemy.models import (
     BaseResource,
@@ -13,8 +15,10 @@ from app.domain.schemas.resource.resource import RtCreate, StationCreate, Crawle
 
 ResourceCreateSchema = Union[RtCreate, StationCreate, CrawlerRouteCreate, PandemicRouteCreate]
 ResourceUpdateSchema = Union[RtUpdate, StationUpdate, CrawlerRouteUpdate, PandemicRouteUpdate]
-ResourceReadSchema = Union[RtRead, StationRead, CrawlerRouteRead, PandemicRouteRead]
-
+ResourceReadSchema = Annotated[
+    Union[RtRead, StationRead, CrawlerRouteRead, PandemicRouteRead],
+    Field(discriminator="resource_type"),
+]
 
 class ResourceMapper:
     # -----------------------

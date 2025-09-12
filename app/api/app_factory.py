@@ -7,18 +7,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import logger
 from app.api.middleware.logging import log_requests
 from app.api.v1.routes import users, resources, orders, metadata
-from app.db.managers.mongodb_manager import MongoDBManager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     logger.info("Starting Application...")
-    mongodb = MongoDBManager()
 
     yield
 
     logger.info("Shutting Application Down...")
-    await mongodb.close()
 
 
 class AppFactory:
@@ -39,7 +36,7 @@ class AppFactory:
         # Include versioned routes
         app.include_router(users.router, prefix="/api/v1")
         app.include_router(resources.router, prefix="/api/v1")
-        app.include_router(orders.router, prefix="/api/v1")
-        app.include_router(metadata.router, prefix="/api/v1")
+        # app.include_router(orders.router, prefix="/api/v1")
+        # app.include_router(metadata.router, prefix="/api/v1")
 
         return app

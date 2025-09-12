@@ -1,26 +1,26 @@
 from fastapi import Depends, HTTPException
 
-from src import logger
-from src.api.auth.jwt_auth import get_current_user_id
-from src.api.dependencies.users import get_users_handler
-from src.handlers.users_handler import UsersHandler
-from src.models.users.enums.user_role import UserRole
-from src.models.users.user import User
+from app import logger
+from app.api.auth.jwt_auth import get_current_username
+from app.api.dependencies.services.users import get_user_service
+from app.domain.schemas.user.enums.user_role import UserRole
+from app.domain.schemas.user.user import UserRead
+from app.domain.services.user_service import UserService
 
 
 async def get_current_user(
-        user_id: str = Depends(get_current_user_id),
-        handler: UsersHandler = Depends(get_users_handler)
-) -> User:
-    user = await handler.get_user_by_id(user_id)
+        username: str = Depends(get_current_username),
+        user_service: UserService = Depends(get_user_service)
+) -> UserRead:
+    user = await user_service.get_by_username(username)
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
 
 async def require_admin(
-        user: User = Depends(get_current_user),
-) -> User:
+        user: UserRead = Depends(get_current_user),
+) -> UserRead:
     if not user.role == UserRole.ADMIN:
         logger.warning(f"User with user_id='{user.id}' tried accessing an admin only route")
         raise HTTPException(status_code=403, detail="Admin access required")

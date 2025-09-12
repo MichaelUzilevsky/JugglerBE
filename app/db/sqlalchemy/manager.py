@@ -42,3 +42,10 @@ class SQLAlchemyManager:
     async def close(self):
         await self._engine.dispose()
         logger.info("[SQLAlchemyManager] Closed SQLAlchemy Manager")
+
+    @property
+    def engine(self):
+        return self._engine
+
+
+async_engine = SQLAlchemyManager().engine

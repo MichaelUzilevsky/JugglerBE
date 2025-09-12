@@ -4,6 +4,7 @@ from sqlalchemy import Column, Integer, String, Enum, DateTime, func, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.sqlalchemy.base import Base
 from app.db.sqlalchemy.models import order_resources
+from app.domain.schemas.resource.enums.resource_environment import ResourceEnvironment
 from app.domain.schemas.resource.enums.resource_state import ResourceState
 from app.domain.schemas.resource.enums.resource_type import ResourceType
 from app.domain.schemas.resource.enums.rt_locations import RtLocations
@@ -21,7 +22,7 @@ class BaseResource(Base):
 
     __mapper_args__ = {
         "polymorphic_on": resource_type,
-        "polymorphic_identity": ResourceType.BASE.value,
+        # "polymorphic_identity": ResourceType.BASE.value,
     }
 
     orders = relationship("Order", secondary=order_resources, back_populates="resources")
@@ -42,6 +43,7 @@ class Station(BaseResource):
     __tablename__ = "stations"
 
     id = Column(Integer, ForeignKey("base_resources.id", ondelete="CASCADE"), primary_key=True)
+    environment = Column(Enum(ResourceEnvironment), nullable=False, default=ResourceEnvironment.ZNIF)
     version = Column(String(50), nullable=False)
 
     __mapper_args__ = {"polymorphic_identity": ResourceType.STATION.value}
@@ -51,6 +53,8 @@ class CrawlerRoute(BaseResource):
     __tablename__ = "crawler_routes"
 
     id = Column(Integer, ForeignKey("base_resources.id", ondelete="CASCADE"), primary_key=True)
+    environment = Column(Enum(ResourceEnvironment), nullable=False)
+    horizon_route = Column(Integer)
 
     __mapper_args__ = {"polymorphic_identity": ResourceType.CRAWLER_ROUTE.value}
 
@@ -59,5 +63,6 @@ class PandemicRoute(BaseResource):
     __tablename__ = "pandemic_routes"
 
     id = Column(Integer, ForeignKey("base_resources.id", ondelete="CASCADE"), primary_key=True)
+    environment = Column(Enum(ResourceEnvironment), nullable=False, default=ResourceEnvironment.ZNIF)
 
     __mapper_args__ = {"polymorphic_identity": ResourceType.PANDEMIC_ROUTE.value}

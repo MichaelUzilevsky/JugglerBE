@@ -4,8 +4,7 @@ from app import logger
 from app.exceptions.users_exceptions.login_failed_exception import LoginFailedException
 from app.exceptions.users_exceptions.username_already_exists_exception import UsernameAlreadyExistsException
 from app.domain.schemas.user.enums.user_role import UserRole
-from app.models.users.user import User
-from app.models.users.user_login import UserLogin
+
 from app.utils.password_security import verify_password
 
 

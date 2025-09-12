@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from app.domain.schemas.user.user import UserCreate, UserRead, UserUpdate
+from app.domain.schemas.user.user import UserCreate, UserRead, UserUpdate, UserReadInternal
 
 
 class IUserRepository(ABC):
@@ -14,6 +14,14 @@ class IUserRepository(ABC):
 
     @abstractmethod
     async def get_by_username(self, username: str) -> Optional[UserRead]:
+        pass
+
+    @abstractmethod
+    async def get_internal_by_username(self, username: str) -> Optional[UserReadInternal]:
+        pass
+
+    @abstractmethod
+    async def get_by_email(self, email: str) -> Optional[UserRead]:
         pass
 
     @abstractmethod

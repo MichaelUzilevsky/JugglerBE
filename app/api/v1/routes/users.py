@@ -4,105 +4,115 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.responses import JSONResponse
 
 from app.api.auth.jwt_auth import create_access_token
-from app.api.dependencies.auth import require_admin
-from app.api.dependencies.users import get_users_handler
+from app.api.dependencies.auth import require_admin, get_current_user
+from app.domain.schemas.user.public_user import UserSignupRequest, UserUpdateRequest
+from app.domain.services.user_service import UserService
+from app.api.dependencies.services.users import get_user_service
+from app.domain.schemas.user.user import UserCreate, UserRead, UserUpdate
+from app.exceptions.users_exceptions.email_already_exists_exception import EmailAlreadyExistsException
 from app.exceptions.users_exceptions.login_failed_exception import LoginFailedException
+from app.exceptions.users_exceptions.user_not_found_exception import UserNotFoundException
 from app.exceptions.users_exceptions.username_already_exists_exception import UsernameAlreadyExistsException
-from app.handlers.users_handler import UsersHandler
-from app.domain.schemas.user.enums.user_role import UserRole
-from app.models.users.public_users.user_response import UserResponse
-from app.models.users.public_users.user_signup_request import UserSignupRequest
-from app.models.users.user_login import UserLogin
-from app.utils.password_security import hash_password
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/", response_model=List[UserResponse])
-async def get_all_users(
-        handler: UsersHandler = Depends(get_users_handler),
-        _=Depends(require_admin)
-):
-    users = await handler.get_all()
-    return [UserResponse.from_model(u) for u in users]
-
-
-@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/signup", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def signup(
-        signup_data: UserSignupRequest,
-        handler: UsersHandler = Depends(get_users_handler),
+    signup_data: UserSignupRequest,
+    user_service: UserService = Depends(get_user_service),
 ):
+    user_create = UserCreate(**signup_data.model_dump())
     try:
-        user_model = signup_data.to_model()
-        user_model.password = hash_password(user_model.password)
-        created_user = await handler.sign_up(user_model)
+        return await user_service.signup(user_create)
     except UsernameAlreadyExistsException as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-    return UserResponse.from_model(created_user)
+    except EmailAlreadyExistsException as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/login")
 async def login(
-        login_data: UserLogin,
-        handler: UsersHandler = Depends(get_users_handler),
+    username: str,
+    password: str,
+    user_service: UserService = Depends(get_user_service),
 ):
     try:
-        user = await handler.login(login_data)
-    except LoginFailedException:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        user = await user_service.login(username, password)
+    except LoginFailedException as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
-    access_token = create_access_token(user_id=user.id)
-
+    token = create_access_token(user.username)
     return JSONResponse(
-        status_code=200,
+        status_code=status.HTTP_200_OK,
         content={
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": UserResponse.from_model(user).model_dump(),
+            "access_token": token,
+            "token_type": "bearer"
         },
     )
 
 
-@router.patch("/{user_id}/promote-admin", response_model=UserResponse)
-async def promote_user_to_admin(
-        user_id: str,
-        handler: UsersHandler = Depends(get_users_handler),
-        _=Depends(require_admin),
+@router.get("/", response_model=List[UserRead])
+async def list_users(
+    user_service: UserService = Depends(get_user_service),
+    _: UserRead = Depends(require_admin),
 ):
-    updated = await handler.set_user_role(user_id, UserRole.ADMIN)
-    if not updated:
-        raise HTTPException(status_code=404, detail="Could not update user role")
-
-    user = await handler.get_user_by_id(user_id)
-    return UserResponse.from_model(user)
+    return await user_service.list_users()
 
 
-@router.patch("/{user_id}/demote-user", response_model=UserResponse)
-async def demote_admin_to_user(
-        user_id: str,
-        handler: UsersHandler = Depends(get_users_handler),
-        _=Depends(require_admin),
+@router.patch("/{user_id}/update", response_model=UserRead)
+async def update_user(
+    user_id: int,
+    user_update_data: UserUpdateRequest,
+    user_service: UserService = Depends(get_user_service),
+    current_user: UserRead = Depends(get_current_user),
 ):
-    updated = await handler.set_user_role(user_id, UserRole.USER)
-    if not updated:
-        raise HTTPException(status_code=404, detail="Could not update user role")
+    # Prevent users from updating their own role
+    user_update = UserUpdate(**user_update_data.model_dump())
+    if user_update.role is not None and user_id == current_user.id:
+        raise HTTPException(status_code=403, detail="Cannot update your own role")
+    try:
+        return await user_service.update_user(user_id, user_update)
+    except UserNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except UsernameAlreadyExistsException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except EmailAlreadyExistsException as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-    user = await handler.get_user_by_id(user_id)
-    return UserResponse.from_model(user)
+
+@router.patch("/{user_id}/promote", response_model=UserRead)
+async def promote_user(
+    user_id: int,
+    user_service: UserService = Depends(get_user_service),
+    _: UserRead = Depends(require_admin),
+):
+    try:
+        return await user_service.promote_to_admin(user_id)
+    except UserNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.delete("/{user_id}", response_model=UserResponse)
+@router.patch("/{user_id}/demote", response_model=UserRead)
+async def demote_user(
+    user_id: int,
+    user_service: UserService = Depends(get_user_service),
+    _: UserRead = Depends(require_admin),
+):
+    try:
+        return await user_service.demote_to_user(user_id)
+    except UserNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-        user_id: str,
-        handler: UsersHandler = Depends(get_users_handler),
-        _=Depends(require_admin),
+    user_id: int,
+    user_service: UserService = Depends(get_user_service),
+    _: UserRead = Depends(require_admin),
 ):
-    user = await handler.get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    deleted = await handler.delete(user_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Could not delete user")
-
-    return UserResponse.from_model(user)
+    try:
+        await user_service.delete_user(user_id)
+    except UserNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return JSONResponse(status_code=200, content={"detail": "User deleted"})

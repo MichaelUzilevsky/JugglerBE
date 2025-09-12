@@ -16,7 +16,7 @@ postgresql:
   host: localhost
   port: 5432
   database: juggler
-  echo: true
+  echo: false
   pool_size: 10
   max_overflow: 20
 

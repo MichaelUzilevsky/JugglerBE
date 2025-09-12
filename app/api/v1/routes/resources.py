@@ -1,111 +1,81 @@
-from typing import List, Dict, Any
+from typing import List
+from fastapi import APIRouter, Depends, status, HTTPException
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-
-from app.api.dependencies.auth import get_current_user
-from app.api.dependencies.resources import get_resources_handler
+from app.api.dependencies.auth import require_admin
+from app.api.dependencies.services.resources import get_resource_service
+from app.domain.schemas.resource.enums.resource_type import ResourceType
+from app.domain.services.resource_service import ResourceService
+from app.exceptions.resources_exceptions.resource_already_exists_exception import ResourceAlreadyExistsException
 from app.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
-from app.exceptions.resources_exceptions.duplicate_resource_name_exception import DuplicateResourceNameException
-from app.handlers.resources_handler import ResourcesHandler
-from app.models.resources.abstract.base_resource import BaseResource
+from app.infrastructure.mappers.sqlalchemy.resource_mapper import ResourceReadSchema, ResourceCreateSchema, \
+    ResourceUpdateSchema
 
 router = APIRouter(prefix="/resources", tags=["Resources"])
 
 
-def serialize_resource(resource: BaseResource) -> Dict:
-    data = resource.model_dump()
-    return data
 
-
-@router.get("/", response_model=List[Dict])
-async def get_all_resources(
-        handler: ResourcesHandler = Depends(get_resources_handler),
-        _=Depends(get_current_user)
-):
-    resources = await handler.get_all()
-    return [serialize_resource(r) for r in resources]
-
-
-@router.get("/by-type", response_model=List[Dict])
-async def get_resources_by_type(
-        resource_type: str = Query(..., description="Resource class name like 'Rt', 'Station', etc."),
-        handler: ResourcesHandler = Depends(get_resources_handler),
-        _=Depends(get_current_user)
-):
-    resource_classes = {cls.__name__: cls for cls in handler.resource_classes}
-    resource_class = resource_classes.get(resource_type)
-
-    if not resource_class:
-        raise HTTPException(status_code=404, detail=f"Resource type '{resource_type}' not found")
-
-    items = await handler.get_all_by_resource_class(resource_class)
-    return [serialize_resource(r) for r in items]
+@router.get("/", response_model=List[ResourceReadSchema])
+async def list_resources(service: ResourceService = Depends(get_resource_service)):
+    return await service.list()
 
 
 @router.get("/types", response_model=List[str])
-async def get_all_resource_types(
-        handler: ResourcesHandler = Depends(get_resources_handler),
-        _=Depends(get_current_user)
-):
-    return [cls.__name__ for cls in handler.resource_classes]
+async def get_supported_types(service: ResourceService = Depends(get_resource_service)):
+    return await service.get_supported_types()
 
 
-@router.post("/create", response_model=Dict, status_code=status.HTTP_201_CREATED)
+@router.get("/type/{resource_type}", response_model=List[ResourceReadSchema])
+async def list_by_type(resource_type: ResourceType, service: ResourceService = Depends(get_resource_service)):
+    return await service.list_by_type(resource_type)
+
+
+@router.post("/", response_model=ResourceReadSchema, status_code=status.HTTP_201_CREATED)
 async def create_resource(
-        resource_type: str = Query(..., description="Resource type to create (e.g., 'Rt', 'Station')"),
-        handler: ResourcesHandler = Depends(get_resources_handler),
-        _=Depends(get_current_user),
-        body: dict = None
+    resource: ResourceCreateSchema,
+    service: ResourceService = Depends(get_resource_service),
+    _ = Depends(require_admin)
 ):
-    resource_classes = {cls.__name__: cls for cls in handler.resource_classes}
-    cls = resource_classes.get(resource_type)
-    if not cls:
-        raise HTTPException(status_code=404, detail=f"Resource type '{resource_type}' not found")
-
     try:
-        item = cls(**body)
-        created = await handler.create(cls, item)
-        return serialize_resource(created)
-    except DuplicateResourceNameException as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        return await service.create(resource)
+    except ResourceAlreadyExistsException as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
 
-@router.patch("/update", response_model=Dict)
+@router.patch("/{resource_id}", response_model=ResourceReadSchema)
 async def update_resource(
-        handler: ResourcesHandler = Depends(get_resources_handler),
-        _=Depends(get_current_user),
-        body: dict = None
+    resource_id: int,
+    update: ResourceUpdateSchema,
+    service: ResourceService = Depends(get_resource_service),
+    _ = Depends(require_admin)
 ):
     try:
-        item_id = body.get("id")
-        if not item_id:
-            raise HTTPException(status_code=400, detail="Missing 'id' in body")
-
-        _, resource_class = await handler.get_by_id(item_id)
-        item = resource_class(**body)
-        success = await handler.update(item)
-
-        if not success:
-            raise HTTPException(status_code=500, detail="Update failed")
-
-        return serialize_resource(item)
-    except DuplicateResourceNameException as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return await service.update(resource_id, update)
+    except ResourceAlreadyExistsException as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except ResourceNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_resource(
-        resource_id: str,
-        handler: ResourcesHandler = Depends(get_resources_handler),
-        _=Depends(get_current_user)
+    resource_id: int,
+    service: ResourceService = Depends(get_resource_service),
+    _ = Depends(require_admin)
 ):
     try:
-        deleted = await handler.delete(resource_id)
-        if not deleted:
-            raise HTTPException(status_code=404, detail="Could not delete resource")
+        await service.delete(resource_id)
     except ResourceNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/{resource_id}/latest", response_model=ResourceReadSchema)
+async def get_with_latest_state(resource_id: int, service: ResourceService = Depends(get_resource_service)):
+    try:
+        return await service.get_with_latest_state(resource_id)
+    except ResourceNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/latest", response_model=List[ResourceReadSchema])
+async def list_with_latest_state(service: ResourceService = Depends(get_resource_service)):
+    return await service.list_with_latest_state()

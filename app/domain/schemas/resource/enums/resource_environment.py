@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ResourceEnvironments(str, Enum):
+class ResourceEnvironment(str, Enum):
     ZNIF = "Znifim"
     FIVENIVE = "FiveNine"
     PREP = "Prep"

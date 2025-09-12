@@ -2,7 +2,7 @@ import time
 
 from fastapi import Request
 
-from src import logger
+from app import logger
 
 
 async def log_requests(request: Request, call_next):
