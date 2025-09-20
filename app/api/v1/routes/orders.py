@@ -15,8 +15,8 @@ from app.exceptions.orders_exceptions.order_conflict_exception import OrderConfl
 from app.exceptions.orders_exceptions.order_not_found_exception import OrderNotFoundException
 from app.exceptions.orders_exceptions.order_validation_exception import OrderValidationException
 from app.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
-from app.exceptions.users_exceptions.user_not_found_exception import UserNotFoundException
-from app.infrastructure.exceptions.exceptions import RepositoryException
+from app.domain.exceptions.repository_exceptions import RepositoryException
+from app.exceptions.users_exceptions.users_exceptions import UserNotFoundException
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -61,7 +61,7 @@ async def get_user_orders(
         raise HTTPException(status_code=403, detail="Can not fetch other users orders.")
     try:
         return await service.get_user_orders(user_id)
-    except UserNotFoundException as e:
+    except  UserNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RepositoryException as e:
         raise HTTPException(status_code=500, detail=str(e))

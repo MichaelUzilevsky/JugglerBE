@@ -1,13 +1,17 @@
 from typing import Optional
+
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.db.sqlalchemy.models import User
-from app.infrastructure.exceptions.exceptions import IntegrityViolationException
-from app.exceptions.users_exceptions.email_already_exists_exception import EmailAlreadyExistsException
-from app.exceptions.users_exceptions.username_already_exists_exception import UsernameAlreadyExistsException
-from app.infrastructure.mappers.sqlalchemy.user_mapper import UserMapper
+from app.domain.exceptions.repository_exceptions import IntegrityViolationException, NotFoundException, \
+    RepositoryException
 from app.domain.repositories.iuser_repository import IUserRepository
 from app.domain.schemas.user.user import UserCreate, UserRead, UserUpdate, UserReadInternal
+from app.exceptions.users_exceptions.users_exceptions import UsernameAlreadyExistsException, \
+    EmailAlreadyExistsException, UserNotFoundException
+from app.infrastructure.mappers.sqlalchemy.user_mapper import UserMapper
 from app.infrastructure.repositories.sqlalchemy.base_repository import SQLAlchemyBaseRepository
 
 
@@ -24,41 +28,147 @@ class SQLAlchemyUserRepository(
         super().__init__(session, User, UserMapper)
 
     async def get_by_username(self, username: str) -> Optional[UserRead]:
-        stmt = select(User).where(User.username == username)
-        result = await self.session.execute(stmt)
-        orm_user = result.scalar_one_or_none()
-        return self.mapper.to_read(orm_user) if orm_user else None
+        try:
+            stmt = select(User).where(User.username == username)
+            result = await self.session.execute(stmt)
+            orm_user = result.scalar_one_or_none()
+
+            if orm_user:
+                self._log_info(
+                    "get_by_username_success",
+                    extra={
+                        "username": username,
+                        "user_id": orm_user.id,
+                        "description": f"User {username} retrieved from DB."
+                    }
+                )
+                return self.mapper.to_read(orm_user)
+
+            self._log_warning(
+                "get_by_username_not_found",
+                extra={
+                    "username": username,
+                    "description": f"No user found with username={username}."
+                }
+            )
+            raise UserNotFoundException(f"User with username={username} not found")
+
+        except SQLAlchemyError as e:
+            self._log_error(
+                "get_by_username_error",
+                extra={
+                    "username": username,
+                    "description": "Unexpected DB error while fetching user by username.",
+                    "error": str(e),
+                }
+            )
+            raise RepositoryException()
 
     async def get_by_email(self, email: str) -> Optional[UserRead]:
-        stmt = select(User).where(User.email == email)
-        result = await self.session.execute(stmt)
-        orm_user = result.scalar_one_or_none()
-        return self.mapper.to_read(orm_user) if orm_user else None
+        try:
+            stmt = select(User).where(User.email == email)
+            result = await self.session.execute(stmt)
+            orm_user = result.scalar_one_or_none()
+
+            if orm_user:
+                self._log_info(
+                    "get_by_email_success",
+                    msg=f"User found with email={email}",
+                    extra={
+                        "email": email,
+                        "user_id": orm_user.id,
+                        "description": f"User with email {email} retrieved from DB."
+                    }
+                )
+                return self.mapper.to_read(orm_user)
+
+            self._log_warning(
+                "get_by_email_not_found",
+                msg=f"No user found with email={email}",
+                extra={
+                    "email": email,
+                    "description": f"No user found with email={email}."
+                }
+            )
+            raise UserNotFoundException(f"User with email={email} not found")
+
+        except SQLAlchemyError as e:
+            self._log_error("get_by_email_error",
+                            msg=f"Error fetching user by email={email}",
+                            extra={
+                                "email": email,
+                                "description": "Unexpected DB error while fetching user by email.",
+                                "error": str(e),
+                            }
+                            )
+            raise RepositoryException()
 
     async def get_internal_by_username(self, username: str) -> Optional[UserReadInternal]:
-        stmt = select(User).where(User.username == username)
-        result = await self.session.execute(stmt)
-        orm_user = result.scalar_one_or_none()
-        return UserReadInternal.model_validate(orm_user) if orm_user else None
+        try:
+            stmt = select(User).where(User.username == username)
+            result = await self.session.execute(stmt)
+            orm_user = result.scalar_one_or_none()
+
+            if orm_user:
+                self._log_info("get_internal_by_username_success",
+                               msg=f"Internal user fetched for username={username}",
+                               extra={
+                                   "username": username,
+                                   "user_id": orm_user.id,
+                                   "description": f"User {username} retrieved from DB."
+                               }
+                               )
+                return UserReadInternal.model_validate(orm_user)
+
+            self._log_warning("get_internal_by_username_not_found",
+                              msg=f"No internal user found with username={username}",
+                              extra={
+                                  "username": username,
+                                  "description": f"No user found with username={username}."
+                              })
+            return
+
+        except SQLAlchemyError as e:
+            self._log_error("get_internal_by_username_error",
+                            msg=f"Error fetching internal user by username={username}",
+                            extra={
+                                "username": username,
+                                "description": "Unexpected DB error while fetching user by username.",
+                                "error": str(e),
+                            })
+            raise RepositoryException()
 
     async def create(self, create_schema: UserCreate) -> UserRead:
         try:
-            return await super().create(create_schema)
+            user = await super().create(create_schema)
+            self._log_info("user_created",
+                           msg=f"User created with username={create_schema.username}",
+                           extra={"username": create_schema.username, "user_id": user.id})
+            return user
+
         except IntegrityViolationException as e:
             err = str(e).lower()
             if "username" in err:
-                raise UsernameAlreadyExistsException("Username already exists in the system")
-            elif "email" in err:
-                raise EmailAlreadyExistsException("Email address already exists in the system")
+                raise UsernameAlreadyExistsException("Username already exists")
+            if "email" in err:
+                raise EmailAlreadyExistsException("Email already exists")
             raise
 
     async def update(self, obj_id: int, update_schema: UserUpdate) -> Optional[UserRead]:
         try:
-            return await super().update(obj_id, update_schema)
+            user = await super().update(obj_id, update_schema)
+            self._log_info("user_updated",
+                           msg=f"User updated with id={obj_id}",
+                           extra={"user_id": obj_id})
+            return user
+
         except IntegrityViolationException as e:
             err = str(e).lower()
             if "username" in err:
-                raise UsernameAlreadyExistsException("Username already exists in the system")
-            elif "email" in err:
-                raise EmailAlreadyExistsException("Email address already exists in the system")
+                raise UsernameAlreadyExistsException("Username already exists")
+            if "email" in err:
+                raise EmailAlreadyExistsException("Email already exists")
             raise
+
+        except NotFoundException:
+            raise UserNotFoundException(f"User with id={obj_id} not found")

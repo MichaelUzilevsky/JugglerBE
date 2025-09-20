@@ -5,7 +5,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 
-from app import config
+from app import config, logger
 
 security = HTTPBearer()
 
@@ -26,9 +26,11 @@ def decode_access_token(token: str) -> str:
                              algorithms=[config.get_value("jwt_tokens", "algorithm")])
         username: str = payload.get("sub")
         if username is None:
+            logger.warning("Token payload missing username")
             raise HTTPException(status_code=401, detail="Token payload missing username")
         return username
     except JWTError:
+        logger.warning("Invalid token")
         raise HTTPException(status_code=401, detail="Invalid token")
 
 

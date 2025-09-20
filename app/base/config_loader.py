@@ -31,7 +31,7 @@ class ConfigLoader:
             load_dotenv(dotenv_path)
 
         env = os.environ.get("APP_ENV", "base").lower()
-        base_path = Path(__file__).resolve().parent.parent.parent / "configs" / "app"
+        base_path = Path(__file__).resolve().parent.parent / "configs" / "app"
         base_config_path = base_path / "base.yaml"
         env_config_path = base_path / f"{env}.yaml"
 

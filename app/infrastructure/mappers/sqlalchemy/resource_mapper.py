@@ -37,16 +37,20 @@ class ResourceMapper:
                 name=create_schema.name,
                 resource_state=create_schema.resource_state,
                 version=create_schema.version,
+                environment=create_schema.environment,
             )
         elif isinstance(create_schema, CrawlerRouteCreate):
             return CrawlerRoute(
                 name=create_schema.name,
                 resource_state=create_schema.resource_state,
+                environment=create_schema.environment,
+                horizon_route=create_schema.horizon_route,
             )
         elif isinstance(create_schema, PandemicRouteCreate):
             return PandemicRoute(
                 name=create_schema.name,
                 resource_state=create_schema.resource_state,
+                environment=create_schema.environment,
             )
         else:
             raise ValueError(f"Unsupported create schema type: {type(create_schema)}")

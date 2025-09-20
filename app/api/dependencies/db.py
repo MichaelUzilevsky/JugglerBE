@@ -2,9 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.sqlalchemy.manager import SQLAlchemyManager
 
-db_manager = SQLAlchemyManager()
 
 async def get_session() -> AsyncSession:
+    db_manager = SQLAlchemyManager()
     async with db_manager.get_session() as session:
         try:
             yield session

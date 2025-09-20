@@ -1,2 +1,0 @@
-class EmailAlreadyExistsException(Exception):
-    pass

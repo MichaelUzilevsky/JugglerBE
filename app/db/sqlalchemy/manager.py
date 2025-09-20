@@ -32,7 +32,7 @@ class SQLAlchemyManager:
                 class_=AsyncSession
             )
             self._initialized = True
-            logger.info("[SQLAlchemyManager] Initialized SQLAlchemy Manager")
+            logger.info("Initialized SQLAlchemy Manager")
 
     @asynccontextmanager
     async def get_session(self) -> AsyncSession:
@@ -41,11 +41,8 @@ class SQLAlchemyManager:
 
     async def close(self):
         await self._engine.dispose()
-        logger.info("[SQLAlchemyManager] Closed SQLAlchemy Manager")
+        logger.info("Closed SQLAlchemy Manager")
 
     @property
     def engine(self):
         return self._engine
-
-
-async_engine = SQLAlchemyManager().engine

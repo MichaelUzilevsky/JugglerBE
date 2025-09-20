@@ -5,8 +5,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import logger
+from app.api.exceptions.handlers import domain_exception_handler, unhandled_exception_handler
 from app.api.middleware.logging import log_requests
-from app.api.v1.routes import users, resources, orders, metadata
+from app.api.v1.routes import users, resources, orders
+from app.domain.exceptions.domain_exception import DomainException
 
 
 @asynccontextmanager
@@ -32,6 +34,10 @@ class AppFactory:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+
+        # Register global exception handlers
+        app.add_exception_handler(DomainException, domain_exception_handler)
+        app.add_exception_handler(Exception, unhandled_exception_handler)
 
         # Include versioned routes
         app.include_router(users.router, prefix="/api/v1")

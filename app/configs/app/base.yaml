@@ -1,15 +1,3 @@
-mongodb:
-  uri: CHANGE ME
-  db_name: Juggler
-  collections:
-    users: Users
-    orders: Orders
-    resources:
-      stations: Stations
-      crawler_routes: CrawlerRoutes
-      pandemic_routes: PandemicRoutes
-      rts: RTS
-
 postgresql:
   user: CHANGE_ME
   password: CHANGE_ME

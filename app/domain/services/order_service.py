@@ -16,9 +16,9 @@ from app.exceptions.orders_exceptions.order_conflict_exception import OrderConfl
 from app.exceptions.orders_exceptions.order_not_found_exception import OrderNotFoundException
 from app.exceptions.orders_exceptions.order_validation_exception import OrderValidationException
 from app.exceptions.orders_exceptions.resource_not_found_exception import ResourceNotFoundException
-from app.exceptions.users_exceptions.user_not_found_exception import UserNotFoundException
 
-from app.infrastructure.exceptions.exceptions import IntegrityViolationException, RepositoryException
+from app.domain.exceptions.repository_exceptions import IntegrityViolationException, RepositoryException
+from app.exceptions.users_exceptions.users_exceptions import UserNotFoundException
 
 
 class OrderService:

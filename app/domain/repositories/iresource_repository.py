@@ -7,19 +7,11 @@ from app.infrastructure.mappers.sqlalchemy.resource_mapper import ResourceReadSc
 
 class IResourceRepository(ABC):
     @abstractmethod
-    async def create(self, resource_create: ResourceCreateSchema) -> ResourceReadSchema:
+    async def create(self, create_schema: ResourceCreateSchema, **kwargs) -> ResourceReadSchema:
         pass
 
     @abstractmethod
     async def get(self, resource_id: int) -> Optional[ResourceReadSchema]:
-        pass
-
-    @abstractmethod
-    async def get_with_latest_state(self, obj_id: int) -> Optional[ResourceReadSchema]:
-        pass
-
-    @abstractmethod
-    async def list_with_latest_state(self) -> List[ResourceReadSchema]:
         pass
 
     @abstractmethod
@@ -31,7 +23,7 @@ class IResourceRepository(ABC):
         pass
 
     @abstractmethod
-    async def update(self, resource_id: int, resource_update: ResourceUpdateSchema) -> Optional[ResourceReadSchema]:
+    async def update(self, resource_id: int, resource_update: ResourceUpdateSchema, **kwargs) -> Optional[ResourceReadSchema]:
         pass
 
     @abstractmethod

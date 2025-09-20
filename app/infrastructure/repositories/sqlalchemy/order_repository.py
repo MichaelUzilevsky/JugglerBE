@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.db.sqlalchemy.models import Order, BaseResource, User, OrderStatusHistory
 from app.domain.schemas.order.order import OrderCreate, OrderUpdate, OrderRead
-from app.infrastructure.exceptions.exceptions import NotFoundException, IntegrityViolationException, RepositoryException
+from app.domain.exceptions.repository_exceptions import NotFoundException, IntegrityViolationException, RepositoryException
 from app.infrastructure.mappers.sqlalchemy.order_mapper import OrderMapper
 from app.domain.repositories.iorder_repository import IOrderRepository
 from app.infrastructure.repositories.sqlalchemy.base_repository import SQLAlchemyBaseRepository

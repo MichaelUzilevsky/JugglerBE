@@ -1,13 +1,14 @@
-import logging
 import logging.config
 from pathlib import Path
 
 import yaml
 
+from app.base.logging.context_filter import ContextFilter
+
 
 def setup_logging():
     """
-    Set up logging configuration from a YAML file and initialize log file paths.
+    Loads logging configuration from YAML and applies custom filters/paths.
     Raises:
         FileNotFoundError: If the logger config file is not found.
     """
@@ -19,18 +20,22 @@ def setup_logging():
     with open(config_path, "r") as f:
         log_config = yaml.safe_load(f)
 
-    logs_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+    logs_dir = Path(__file__).resolve().parent.parent.parent.parent / "logs"
     logs_dir.mkdir(exist_ok=True)
 
     # Replace placeholder in config
     if "handlers" in log_config:
-        for handler in log_config["handlers"].values():
+        for handler in log_config.get("handlers", {}).values():
             if isinstance(handler, dict) and "filename" in handler:
                 handler["filename"] = str(logs_dir / handler["filename"])
 
     logging.config.dictConfig(log_config)
 
+    # Add request_id filter to all handlers
+    logger = logging.getLogger("app")
+    for handler in logger.handlers:
+        handler.addFilter(ContextFilter())
 
-# Initialize and expose global logger
-setup_logging()
-logger = logging.getLogger("app")
+    return logger
+
+logger = setup_logging()
