@@ -15,6 +15,7 @@ class OrderMapper:
         return Order(
             user_id=order_create.user_id,
             purpose=order_create.purpose,
+            order_description=order_create.order_description,
             status=order_create.status,
             start_time=order_create.start_time,
             end_time=order_create.end_time,
@@ -37,6 +38,8 @@ class OrderMapper:
             order.user_id = order_update.user_id
         if order_update.purpose is not None:
             order.purpose = order_update.purpose
+        if order_update.order_description is not None:
+            order.order_description = order_update.order_description
         if order_update.status is not None:
             order.status = order_update.status
         if order_update.start_time is not None:

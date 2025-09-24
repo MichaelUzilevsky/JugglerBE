@@ -1,36 +1,39 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
 
 from app import config, logger
 
 security = HTTPBearer()
 
+SECRET_KEY = config.get_value("jwt_tokens", "secret_key")
+ALGORITHM = config.get_value("jwt_tokens", "algorithm")
+ACCESS_TOKEN_EXPIRE_MINUTES = config.get_value("jwt_tokens", "access_token_expire_minutes")
 
-def create_access_token(username: str, expires_delta: Optional[timedelta] = None) -> str:
-    expire = datetime.now() + (expires_delta or
-                               timedelta(minutes=config.get_value("jwt_tokens", "access_token_expire_minutes")))
-    to_encode = {"sub": username, "exp": expire}
-    return jwt.encode(to_encode,
-                      config.get_value("jwt_tokens", "secret_key"),
-                      algorithm=config.get_value("jwt_tokens", "algorithm"))
+
+def create_access_token(username: str) -> str:
+    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": username,
+        "exp": expire,
+        "iat": datetime.now(),
+    }
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> str:
     try:
-        payload = jwt.decode(token,
-                             config.get_value("jwt_tokens", "secret_key"),
-                             algorithms=[config.get_value("jwt_tokens", "algorithm")])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             logger.warning("Token payload missing username")
-            raise HTTPException(status_code=401, detail="Token payload missing username")
+            raise HTTPException(status_code=401, detail="Token missing username")
         return username
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
     except JWTError:
-        logger.warning("Invalid token")
         raise HTTPException(status_code=401, detail="Invalid token")
 
 

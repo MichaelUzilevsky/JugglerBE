@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import Depends, HTTPException
 
 from app import logger
@@ -18,10 +20,26 @@ async def get_current_user(
     return user
 
 
-async def require_admin(
-        user: UserRead = Depends(get_current_user),
+async def require_roles(
+        roles: List[UserRole],
+        user: UserRead = Depends(get_current_user)
 ) -> UserRead:
-    if not user.role == UserRole.ADMIN:
-        logger.warning(f"User with user_id='{user.id}' tried accessing an admin only route")
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if user.role not in roles:
+        logger.warning(f"User with user_id='{user.id}' tried accessing {[role.value for role in roles]} "
+                       f"only route while his route is '{user.role.value}'")
+        raise HTTPException(
+            status_code=403,
+            detail=f"Access denied: required {[role.value for role in roles]}, but your role is '{user.role.value}'"
+        )
     return user
+
+
+def role_dependency(roles: list[UserRole]):
+    async def dependency(user: UserRead = Depends(get_current_user)):
+        return await require_roles(roles, user)
+
+    return dependency
+
+
+admin_only = role_dependency([UserRole.ADMIN])
+logged_in_only = role_dependency([UserRole.USER, UserRole.ADMIN])

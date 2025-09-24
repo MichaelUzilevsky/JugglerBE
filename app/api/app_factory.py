@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import logger
 from app.api.exceptions.handlers import domain_exception_handler, unhandled_exception_handler
 from app.api.middleware.logging import log_requests
-from app.api.v1.routes import users, resources, orders
+from app.api.v1.routes import users, resources, orders, metadata
 from app.domain.exceptions.domain_exception import DomainException
 
 
@@ -43,6 +43,6 @@ class AppFactory:
         app.include_router(users.router, prefix="/api/v1")
         app.include_router(resources.router, prefix="/api/v1")
         app.include_router(orders.router, prefix="/api/v1")
-        # app.include_router(metadata.router, prefix="/api/v1")
+        app.include_router(metadata.router, prefix="/api/v1")
 
         return app

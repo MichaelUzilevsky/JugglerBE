@@ -51,7 +51,7 @@ class SQLAlchemyUserRepository(
                     "description": f"No user found with username={username}."
                 }
             )
-            raise UserNotFoundException(f"User with username={username} not found")
+            return
 
         except SQLAlchemyError as e:
             self._log_error(
@@ -90,7 +90,7 @@ class SQLAlchemyUserRepository(
                     "description": f"No user found with email={email}."
                 }
             )
-            raise UserNotFoundException(f"User with email={email} not found")
+            return
 
         except SQLAlchemyError as e:
             self._log_error("get_by_email_error",

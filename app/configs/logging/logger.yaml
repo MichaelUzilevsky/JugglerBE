@@ -23,7 +23,7 @@ handlers:
     level: DEBUG
     formatter: json
     filename: app.log
-    maxBytes: 10485760   # 10 MB
+    maxBytes: 1048576   # 1 MB
     backupCount: 7
     use_gzip: true       # compress old logs
 

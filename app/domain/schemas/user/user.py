@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
+
 from app.domain.schemas.user.enums.user_role import UserRole
 
 
@@ -12,6 +14,7 @@ class UserCreate(BaseModel):
     email: str
     role: UserRole = UserRole.USER
 
+
 # ----------------- Update -----------------
 class UserUpdate(BaseModel):
     username: Optional[str] = None
@@ -19,6 +22,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None
     role: Optional[UserRole] = None
+
 
 # ----------------- Read -----------------
 class UserRead(BaseModel):
@@ -31,6 +35,7 @@ class UserRead(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
 
 class UserReadInternal(UserRead):
     password: str

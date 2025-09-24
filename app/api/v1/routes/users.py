@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.responses import JSONResponse
 
 from app.api.auth.jwt_auth import create_access_token
-from app.api.dependencies.auth import require_admin, get_current_user
+from app.api.dependencies.auth import get_current_user, admin_only
 from app.api.dependencies.services.users import get_user_service
 from app.domain.schemas.user.enums.user_role import UserRole
 from app.domain.schemas.user.public_user import UserSignupRequest, UserUpdateRequest
@@ -31,7 +31,7 @@ async def login(username: str, password: str, user_service: UserService = Depend
 
 
 @router.get("/", response_model=List[UserRead])
-async def list_users(user_service: UserService = Depends(get_user_service), _: UserRead = Depends(require_admin)):
+async def list_users(user_service: UserService = Depends(get_user_service), _: UserRead = Depends(admin_only)):
     return await user_service.list_users()
 
 
@@ -52,18 +52,18 @@ async def update_user(
 
 @router.patch("/{user_id}/promote", response_model=UserRead)
 async def promote_user(user_id: int, user_service: UserService = Depends(get_user_service),
-                       _: UserRead = Depends(require_admin)):
+                       _: UserRead = Depends(admin_only)):
     return await user_service.promote_to_admin(user_id)
 
 
 @router.patch("/{user_id}/demote", response_model=UserRead)
 async def demote_user(user_id: int, user_service: UserService = Depends(get_user_service),
-                      _: UserRead = Depends(require_admin)):
+                      _: UserRead = Depends(admin_only)):
     return await user_service.demote_to_user(user_id)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: int, user_service: UserService = Depends(get_user_service),
-                      _: UserRead = Depends(require_admin)):
+                      _: UserRead = Depends(admin_only)):
     await user_service.delete_user(user_id)
     return JSONResponse(status_code=200, content={"detail": "User deleted"})

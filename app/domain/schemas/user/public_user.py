@@ -1,11 +1,14 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class UserSignupRequest(BaseModel):
     username: str
     email: str
     full_name: str
     password: str
+
 
 class UserUpdateRequest(BaseModel):
     username: Optional[str] = None

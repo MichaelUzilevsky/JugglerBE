@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Table, func, UniqueConstraint, Index
+from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Table, func, UniqueConstraint, Index, Text
 from sqlalchemy.orm import relationship
 from app.db.sqlalchemy.base import Base
 from app.domain.schemas.order.enums.order_purpose import OrderPurpose
@@ -38,6 +38,7 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     purpose = Column(Enum(OrderPurpose), nullable=False)
+    order_description = Column(Text, nullable=False)
     status = Column(Enum(OrderStatus), default=OrderStatus.CREATED, nullable=False)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)

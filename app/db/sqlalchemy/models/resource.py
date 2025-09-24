@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Enum, DateTime, func, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, DateTime, func, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from app.db.sqlalchemy.base import Base
 from app.db.sqlalchemy.models import order_resources
@@ -19,6 +19,7 @@ class BaseResource(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, nullable=False)
+    general_description = Column(Text, default=None)
     resource_state = Column(Enum(ResourceState), nullable=False)
     resource_type = Column(Enum(ResourceType), nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)

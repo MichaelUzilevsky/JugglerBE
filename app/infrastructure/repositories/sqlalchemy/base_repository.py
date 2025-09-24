@@ -149,7 +149,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
                 msg=f"Integrity error while updating object id={obj_id}",
                 extra={"id": obj_id, "error": str(e)}
             )
-            raise IntegrityViolationException()
+            raise IntegrityViolationException(str(e))
 
         except SQLAlchemyError as e:
             self._log_error(

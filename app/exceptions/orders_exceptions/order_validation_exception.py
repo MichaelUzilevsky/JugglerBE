@@ -1,2 +1,0 @@
-class OrderValidationException(Exception):
-    pass

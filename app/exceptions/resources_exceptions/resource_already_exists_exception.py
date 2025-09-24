@@ -1,2 +1,0 @@
-class ResourceAlreadyExistsException(Exception):
-    pass
