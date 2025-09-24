@@ -1,2 +1,0 @@
-class UsernameAlreadyExistsException(Exception):
-    pass

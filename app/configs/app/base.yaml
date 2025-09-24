@@ -1,0 +1,14 @@
+postgresql:
+  user: CHANGE_ME
+  password: CHANGE_ME
+  host: localhost
+  port: 5432
+  database: juggler
+  echo: false
+  pool_size: 10
+  max_overflow: 20
+
+jwt_tokens:
+  secret_key: ${JWT_SECRET_KEY}
+  algorithm: HS256
+  access_token_expire_minutes: 60
