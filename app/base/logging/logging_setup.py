@@ -1,4 +1,5 @@
 import logging.config
+import os
 from pathlib import Path
 
 import yaml
@@ -31,8 +32,14 @@ def setup_logging():
 
     logging.config.dictConfig(log_config)
 
-    # Add request_id filter to all handlers
+
     logger = logging.getLogger("app")
+
+    # Set base log level, based on env
+    log_level = os.environ.get("LOG_LEVEL", "DEBUG")
+    logger.setLevel(log_level)
+
+    # Add request_id filter to all handlers
     for handler in logger.handlers:
         handler.addFilter(ContextFilter())
 

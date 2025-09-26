@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dotenv import load_dotenv
 
 
 class ConfigLoader:
@@ -25,10 +24,6 @@ class ConfigLoader:
         """
         Loads configuration from YAML files and .env file based on the environment.
         """
-        # Load .env file if exists
-        dotenv_path = Path(__file__).resolve().parent.parent.parent / ".env"
-        if dotenv_path.exists():
-            load_dotenv(dotenv_path)
 
         env = os.environ.get("APP_ENV", "base").lower()
         base_path = Path(__file__).resolve().parent.parent / "configs" / "app"
@@ -90,7 +85,7 @@ class ConfigLoader:
         """
         Recursively checks for environment variables that override config values.
         Nested keys become ENV vars with underscores.
-        Example: postgresql.user -> POSTGRESQL_USER
+        Example: postgresql.User -> POSTGRESQL_USER
         """
         new_config = {}
         for key, value in config.items():
@@ -125,6 +120,3 @@ class ConfigLoader:
             else:
                 return None
         return ref
-
-
-config = ConfigLoader()
