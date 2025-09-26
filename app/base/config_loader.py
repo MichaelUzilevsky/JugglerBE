@@ -45,7 +45,13 @@ class ConfigLoader:
         else:
             merged = base_config
 
-        self._config = self._resolve_env_vars(merged)
+        # Step 1: Resolve ${VAR} placeholders
+        resolved = self._resolve_env_vars(merged)
+
+        # Step 2: Apply full env var overrides
+        overridden = self._apply_env_overrides(resolved)
+
+        self._config = overridden
 
     def _deep_merge_dicts(self, base: dict, override: dict) -> dict:
         """
@@ -79,6 +85,33 @@ class ConfigLoader:
                     raise ValueError(f"Environment variable '{env_var}' not set.")
                 return ConfigLoader.ENV_VAR_PATTERN.sub(env_value, value)
         return value
+
+    def _apply_env_overrides(self, config: dict, prefix: str = "") -> dict:
+        """
+        Recursively checks for environment variables that override config values.
+        Nested keys become ENV vars with underscores.
+        Example: postgresql.user -> POSTGRESQL_USER
+        """
+        new_config = {}
+        for key, value in config.items():
+            env_key = f"{prefix}{key}".upper()
+            env_key = env_key.replace(".", "_")
+
+            if isinstance(value, dict):
+                new_config[key] = self._apply_env_overrides(value, prefix=env_key + "_")
+            else:
+                env_value = os.environ.get(env_key)
+                if env_value is not None:
+                    if isinstance(value, bool):
+                        env_value = env_value.lower() in ("1", "true", "yes", "on")
+                    elif isinstance(value, int):
+                        env_value = int(env_value)
+                    elif isinstance(value, float):
+                        env_value = float(env_value)
+                    new_config[key] = env_value
+                else:
+                    new_config[key] = value
+        return new_config
 
     def get_value(self, *keys: str) -> Any:
         """

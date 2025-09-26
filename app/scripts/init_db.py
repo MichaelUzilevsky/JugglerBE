@@ -1,19 +1,25 @@
 from sqlalchemy.ext.asyncio import create_async_engine
-from src.db.sqlalchemy.models import *
-from src.db.sqlalchemy.base import Base
+
+from app import config
+from app.db.sqlalchemy.models import *
+from app.db.sqlalchemy.base import Base
+
+postgresql_config = config.get_value("postgresql")
+DATABASE_URL = (
+    f"postgresql+asyncpg://"
+    f"{postgresql_config['user']}:{postgresql_config['password']}@"
+    f"{postgresql_config['host']}:{postgresql_config['port']}/"
+    f"{postgresql_config['database']}"
+)
+
+engine = create_async_engine(DATABASE_URL, echo=True)
 
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-
-DATABASE_URL = "postgresql+asyncpg://admin:admin@localhost/juggler"
-
-engine = create_async_engine(DATABASE_URL, echo=True)
-
 async def reset_db():
     async with engine.begin() as conn:
-        # Drop all tables first
         await conn.run_sync(Base.metadata.drop_all)
 
 import asyncio

@@ -1,9 +1,9 @@
 postgresql:
   user: CHANGE_ME
   password: CHANGE_ME
-  host: localhost
-  port: 5432
-  database: juggler
+  host: CHANGE_ME
+  port: CHANGE_ME
+  database: CHANGE_ME
   echo: false
   pool_size: 10
   max_overflow: 20

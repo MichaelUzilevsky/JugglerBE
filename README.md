@@ -1,99 +1,148 @@
-
 # Juggler BackEnd
 
-## Overview
-Juggler BackEnd is a modular backend built with **FastAPI** for scheduling and resource allocation. It features async operations, JWT authentication, MongoDB integration, and a scalable, maintainable architecture.
+## Description
 
-## Features
-- **User Management**
-  - Sign up, login
-  - JWT-based authentication (access tokens with user ID and expiration)
-  - Admins can promote/demote users and delete accounts
-  - No password hashing yet (planned)
-- **Order Management**
-  - Users create/update orders
-  - Orders require admin approval
-  - Only creators or admins can update orders
-  - Conflict detection prevents scheduling overlaps
-  - Filter orders by time and approval status
-- **Resource Management**
-  - Resource models are statically defined by developers
-  - Each model inherits from a base resource
-  - Schemas are dynamically exposed to the frontend for auto-generated forms
-- **Authentication & Authorization**
-  - JWT tokens issued at login (sub=user ID, exp=expiration)
-  - Dependency-based access control (admin-only/user-specific routes)
-  - No refresh tokens yet (planned)
-- **Architecture & Codebase**
-  - Modular, scalable codebase
-  - Lifespan management with AppFactory
-  - Async MongoDB via Motor
-  - Pydantic models for validation
-  - Logging via YAML config and rotating log files
+Juggler BackEnd is a production-ready Python REST API for scheduling and resource allocation, built with FastAPI. It manages users, resources, and orders, providing secure authentication, robust business logic, and scalable architecture. The API is consumed by a frontend client and supports admin/user roles, conflict detection, and dynamic resource schemas.
+
+---
+
+## Architecture Overview
+
+- **Framework:** FastAPI (async Python web framework)
+- **Database:** PostgresSQL (via SQLAlchemy ORM)
+- **Authentication:** JWT (JSON Web Tokens) with access tokens
+- **Logging:** YAML-configured, rotating log files, middleware logging
+- **Config:** YAML and .env support
+
+```mermaid
+graph TD
+   Client[Frontend Client] -->|REST API| API[FastAPI App]
+   API -->|Business Logic| Services[Domain Services]
+   Services -->|CRUD| DB[PostgresSQL/SQLAlchemy]
+   API -->|Auth| JWT[JWT Auth]
+   API -->|Logging| Logs[Log Files]
+   API -->|Config| Config[.env/YAML]
+```
+
+---
+
+## Tech Stack
+
+| Component  | Version/Library        |
+|------------|------------------------|
+| Python     | 3.12+                  |
+| FastAPI    | >=0.100                |
+| Uvicorn    | >=0.22                 |
+| SQLAlchemy | >=2.0                  |
+| PyJWT      | >=2.8                  |
+| PyYAML     | >=6.0                  |
+| Logging    | Standard + YAML config |
+
+---
+
+## Installation & Setup
+
+1. **Clone the repository**
+
+  ```bash
+  git clone https://github.com/MichaelUzilevsky/JugglerBE.git
+  cd JugglerBE
+  ```
+
+2. **Create a virtual environment**
+
+  ```bash
+  python3 -m venv venv
+  source venv/bin/activate
+  ```
+
+3. **Install dependencies**
+
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+4. **Configure environment variables**
+
+- Copy `.env.example` to `.env` and fill in your secrets:
+  ```env
+  # Example .env
+  APP_ENV=dev
+  POSTGRES_HOST=localhost
+  POSTGRES_PORT=5432
+  POSTGRES_USER=youruser
+  POSTGRES_PASSWORD=yourpassword
+  POSTGRES_DB=juggler
+  JWT_SECRET=your_jwt_secret
+  LOG_LEVEL=INFO
+  ```
+- Edit YAML configs in `app/configs/app/` and `app/configs/logging/` as needed.
+
+5. **Database setup**
+
+- Ensure your PostgresSQL instance is running and accessible.
+- Run migration/init scripts in `app/scripts/` if needed:
+  ```bash
+  python app/scripts/init_db.py
+  ```
+
+---
+
+## Running the Application
+
+**Local Development:**
+
+```bash
+uvicorn app.main:app --reload
+```
+
+**Production:**
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+---
+
+## API Documentation
+
+- **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+### Authentication
+
+- Login returns a JWT token. Include it in `Authorization: Bearer <token>` for protected endpoints.
+- Admin-only endpoints require admin privileges.
+
+---
 
 ## Project Structure
+
 ```
 JugglerBE/
-├── main.py
-├── configs/
-├── logs/
-├── src/
-│   ├── api/              # FastAPI routes, dependencies, middleware
-│   ├── base/             # Configuration and logger setup
-│   ├── db/               # MongoDB management
-│   ├── handlers/         # Business logic for users, orders, resources
-│   ├── models/           # Pydantic models
-│   └── exceptions/       # Custom exceptions
+├── app/                # Main application package
+│   ├── api/            # FastAPI routes, dependencies, middleware
+│   ├── base/           # Config loader, logger setup
+│   ├── configs/        # YAML configs for app and logging
+│   ├── db/             # SQLAlchemy management
+│   ├── domain/         # Business logic, repositories, schemas
+│   ├── exceptions/     # Custom exception classes
+│   ├── infrastructure/ # Mappers, repository implementations
+│   ├── scripts/        # DB init, test scripts
+│   ├── utils/          # Utility functions (e.g., password security)
+├── logs/               # Log files
+├── requirements.txt    # Python dependencies
+├── README.md           # Project documentation
 ```
 
-## Getting Started
-1. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. **Configure environment**:
-   - Edit YAML files in `configs/app/` for your environment (`base.yaml`, `dev.yaml`, `prod.yaml`).
-   - Optionally create a `.env` file or **configure** system envs, for secrets and app production level.
-   ```bash
-    APP_ENV=production-level
-    JWT_SECRET_KEY=secret-key
-   ```
-3. **Configure logging**:
-   - Edit `configs/logging/logger.yaml` as needed.
-4. **Run the application**:
-   ```bash
-   uvicorn main:app --reload
-   ```
-
-## Configuration
-- **App Config**: Located in `configs/app/`. Supports multiple environments.
-- **Logging**: Configured via `configs/logging/logger.yaml`.
-- **MongoDB**: Connection details in config files and `.env`.
-
-
-## API Overview
-- `/api/v1/users/`: login, signup, admin actions
-- `/api/v1/orders/`: create/update/get user-specific orders
-- `/api/v1/resources/`: expose schemas for resource models
-
-## Exception Handling
-Custom exceptions for:
-- User login/registration errors
-- Resource duplication
-- Order conflicts, not found, permission issues
-
-## Logging
-Logs are written to the `logs/` directory. Logging is configured via YAML and supports file rotation and formatting. Middleware logs requests and errors.
-
-## Extending
-- Add new resource types by creating new model classes and updating config
-- Add new business logic by extending handler classes
-- Add new exception types in the `exceptions/` directory
-
+---
 
 ## License
+
 MIT License
 
-## Author
-Michael Uzilevsky
+---
 
+## Author
+
+Michael Uzilevsky
