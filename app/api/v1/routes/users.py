@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.responses import JSONResponse
 
 from app.api.auth.jwt_auth import create_access_token
-from app.api.dependencies.auth import get_current_user, admin_only
+from app.api.dependencies.auth import get_current_user, admin_only, logged_in_only
 from app.api.dependencies.services.users import get_user_service
 from app.domain.schemas.user.enums.user_role import UserRole
 from app.domain.schemas.user.public_user import UserSignupRequest, UserUpdateRequest
@@ -29,6 +29,9 @@ async def login(username: str, password: str, user_service: UserService = Depend
         content={"access_token": token, "token_type": "bearer"}
     )
 
+@router.get("/me", response_model=UserRead)
+async def me(user:UserRead = Depends(logged_in_only)):
+    return user
 
 @router.get("/", response_model=List[UserRead])
 async def list_users(user_service: UserService = Depends(get_user_service), _: UserRead = Depends(admin_only)):
