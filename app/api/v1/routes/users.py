@@ -7,7 +7,7 @@ from app.api.auth.jwt_auth import create_access_token
 from app.api.dependencies.auth import get_current_user, admin_only, logged_in_only
 from app.api.dependencies.services.users import get_user_service
 from app.domain.schemas.user.enums.user_role import UserRole
-from app.domain.schemas.user.public_user import UserSignupRequest, UserUpdateRequest
+from app.domain.schemas.user.public_user import UserSignupRequest, UserUpdateRequest, UserLoginRequest
 from app.domain.schemas.user.user import UserCreate, UserRead, UserUpdate
 from app.domain.services.user_service import UserService
 
@@ -21,8 +21,8 @@ async def signup(signup_data: UserSignupRequest, user_service: UserService = Dep
 
 
 @router.post("/login")
-async def login(username: str, password: str, user_service: UserService = Depends(get_user_service)):
-    user = await user_service.login(username, password)
+async def login(login_user: UserLoginRequest, user_service: UserService = Depends(get_user_service)):
+    user = await user_service.login(login_user.username, login_user.password)
     token = create_access_token(user.username)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
