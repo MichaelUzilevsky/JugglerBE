@@ -11,4 +11,5 @@ postgresql:
 jwt_tokens:
   secret_key: ${JWT_SECRET_KEY}
   algorithm: HS256
-  access_token_expire_minutes: 60
+  access_token_expire_minutes: 10
+  refresh_token_expire_days: 7

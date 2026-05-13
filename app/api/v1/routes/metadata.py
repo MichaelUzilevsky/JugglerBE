@@ -15,7 +15,7 @@ class StateDescription(BaseModel):
 router = APIRouter(prefix="/metadata", tags=["Metadata"])
 
 
-@router.get("/resource-states", response_model=List[StateDescription])
+@router.get("/resource/state", response_model=List[StateDescription])
 async def get_resource_states():
     return [
         {"value": ResourceState(state).value, "description": RESOURCE_STATE_DESCRIPTIONS[state]} for state in
@@ -23,8 +23,8 @@ async def get_resource_states():
     ]
 
 
-@router.get("/order-states", response_model=List[StateDescription])
-async def get_resource_states():
+@router.get("/order/purpose", response_model=List[StateDescription])
+async def get_order_purposes():
     return [
         {"value": OrderPurpose(state).value, "description": ORDER_PURPOSE_DESCRIPTIONS[state]} for state in OrderPurpose
     ]

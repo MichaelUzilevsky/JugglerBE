@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
 
 from app.db.sqlalchemy.base import Base
+from app.db.sqlalchemy.models import *
+
 from app.db.sqlalchemy.manager import DATA_BASE_URL
 
 # Alembic config object

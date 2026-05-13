@@ -67,7 +67,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
             )
             raise RepositoryException()
 
-    async def get(self, obj_id: int) -> Optional[DomainRead]:
+    async def get(self, obj_id: int | str) -> Optional[DomainRead]:
         try:
             stmt = select(self.orm_model).where(self.orm_model.id == obj_id)
             result = await self.session.execute(stmt)
@@ -118,7 +118,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
             )
             raise RepositoryException()
 
-    async def update(self, obj_id: int, update_schema: DomainUpdate) -> Optional[DomainRead]:
+    async def update(self, obj_id: int | str, update_schema: DomainUpdate) -> Optional[DomainRead]:
         try:
             stmt = select(self.orm_model).where(self.orm_model.id == obj_id)
             result = await self.session.execute(stmt)
