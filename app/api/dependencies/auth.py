@@ -24,8 +24,15 @@ async def get_current_user(
 def require_roles(roles: List[UserRole]):
     async def dependency(user: UserRead = Depends(get_current_user)):
         if user.role not in roles:
-            logger.warning(f"User with user_id='{user.id}' tried accessing {[role.value for role in roles]} "
-                           f"only route while his route is '{user.role.value}'")
+            logger.warning(
+                "Access denied: insufficient role",
+                extra={
+                    "event": "auth_role_denied",
+                    "user_id": user.id,
+                    "user_role": user.role.value,
+                    "required_roles": [r.value for r in roles],
+                }
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied: requires {roles}, you are {user.role}",

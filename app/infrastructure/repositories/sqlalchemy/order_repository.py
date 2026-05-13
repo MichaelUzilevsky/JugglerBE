@@ -70,14 +70,14 @@ class SQLAlchemyOrderRepository(
                 order_id=orm_order.id,
                 old_status=order_create.status,
                 new_status=order_create.status,
-                message=order_create.message or "Order created",
+                message="Order created",
                 changed_by=order_create.user_id,
             )
 
             await self.session.flush()
             await self.session.refresh(orm_order)
 
-            self._log_info(
+            self._log_debug(
                 "order_create_success",
                 f"Created order id={orm_order.id}",
                 {"order_id": orm_order.id, "user_id": order_create.user_id},
@@ -126,7 +126,7 @@ class SQLAlchemyOrderRepository(
             await self.session.flush()
             await self.session.refresh(orm_order)
 
-            self._log_info("order_update_success", f"Updated order id={order_id}",
+            self._log_debug("order_update_success", f"Updated order id={order_id}",
                            {"order_id": order_id, "user_id": order_update.user_id})
 
             return await self.get(order_id)
@@ -157,7 +157,7 @@ class SQLAlchemyOrderRepository(
             )
             result = await self.session.execute(stmt)
             orm_orders = result.scalars().all()
-            self._log_info(
+            self._log_debug(
                 "order_list_time_range",
                 f"Fetched {len(orm_orders)} orders in time range",
                 {"count": len(orm_orders), "start_time": str(start_time), "end_time": str(end_time)},
@@ -185,7 +185,7 @@ class SQLAlchemyOrderRepository(
             )
             result = await self.session.execute(stmt)
             orm_orders = result.scalars().all()
-            self._log_info(
+            self._log_debug(
                 "order_list_by_user",
                 f"Fetched {len(orm_orders)} orders for user id={user_id}",
                 {"count": len(orm_orders), "user_id": user_id},

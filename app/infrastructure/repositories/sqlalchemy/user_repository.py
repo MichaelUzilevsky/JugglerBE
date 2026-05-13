@@ -34,12 +34,11 @@ class SQLAlchemyUserRepository(
             orm_user = result.scalar_one_or_none()
 
             if orm_user:
-                self._log_info(
+                self._log_debug(
                     "get_by_username_success",
                     extra={
                         "username": username,
                         "user_id": orm_user.id,
-                        "description": f"User {username} retrieved from DB."
                     }
                 )
                 return self.mapper.to_read(orm_user)
@@ -48,7 +47,6 @@ class SQLAlchemyUserRepository(
                 "get_by_username_not_found",
                 extra={
                     "username": username,
-                    "description": f"No user found with username={username}."
                 }
             )
             return
@@ -58,7 +56,6 @@ class SQLAlchemyUserRepository(
                 "get_by_username_error",
                 extra={
                     "username": username,
-                    "description": "Unexpected DB error while fetching user by username.",
                     "error": str(e),
                 }
             )
@@ -71,13 +68,12 @@ class SQLAlchemyUserRepository(
             orm_user = result.scalar_one_or_none()
 
             if orm_user:
-                self._log_info(
+                self._log_debug(
                     "get_by_email_success",
                     msg=f"User found with email={email}",
                     extra={
                         "email": email,
                         "user_id": orm_user.id,
-                        "description": f"User with email {email} retrieved from DB."
                     }
                 )
                 return self.mapper.to_read(orm_user)
@@ -87,7 +83,6 @@ class SQLAlchemyUserRepository(
                 msg=f"No user found with email={email}",
                 extra={
                     "email": email,
-                    "description": f"No user found with email={email}."
                 }
             )
             return
@@ -97,7 +92,6 @@ class SQLAlchemyUserRepository(
                             msg=f"Error fetching user by email={email}",
                             extra={
                                 "email": email,
-                                "description": "Unexpected DB error while fetching user by email.",
                                 "error": str(e),
                             }
                             )
@@ -110,12 +104,11 @@ class SQLAlchemyUserRepository(
             orm_user = result.scalar_one_or_none()
 
             if orm_user:
-                self._log_info("get_internal_by_username_success",
+                self._log_debug("get_internal_by_username_success",
                                msg=f"Internal user fetched for username={username}",
                                extra={
                                    "username": username,
                                    "user_id": orm_user.id,
-                                   "description": f"User {username} retrieved from DB."
                                }
                                )
                 return UserReadInternal.model_validate(orm_user)
@@ -124,7 +117,6 @@ class SQLAlchemyUserRepository(
                               msg=f"No internal user found with username={username}",
                               extra={
                                   "username": username,
-                                  "description": f"No user found with username={username}."
                               })
             return
 
@@ -133,7 +125,6 @@ class SQLAlchemyUserRepository(
                             msg=f"Error fetching internal user by username={username}",
                             extra={
                                 "username": username,
-                                "description": "Unexpected DB error while fetching user by username.",
                                 "error": str(e),
                             })
             raise RepositoryException()
@@ -141,7 +132,7 @@ class SQLAlchemyUserRepository(
     async def create(self, create_schema: UserCreate) -> UserRead:
         try:
             user = await super().create(create_schema)
-            self._log_info("user_created",
+            self._log_debug("user_created",
                            msg=f"User created with username={create_schema.username}",
                            extra={"username": create_schema.username, "user_id": user.id})
             return user
@@ -157,7 +148,7 @@ class SQLAlchemyUserRepository(
     async def update(self, obj_id: int, update_schema: UserUpdate) -> Optional[UserRead]:
         try:
             user = await super().update(obj_id, update_schema)
-            self._log_info("user_updated",
+            self._log_debug("user_updated",
                            msg=f"User updated with id={obj_id}",
                            extra={"user_id": obj_id})
             return user

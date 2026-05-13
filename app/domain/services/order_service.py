@@ -2,8 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from app import logger
-from app.domain.exceptions.repository_exceptions import IntegrityViolationException, RepositoryException, \
-    NotFoundException
+from app.domain.exceptions.repository_exceptions import IntegrityViolationException, NotFoundException
 from app.domain.repositories.iorder_repository import IOrderRepository
 from app.domain.schemas.order.enums.order_purpose import OrderPurpose
 from app.domain.schemas.order.enums.order_status import OrderStatus
@@ -37,97 +36,64 @@ class OrderService:
         self.resource_service = resource_service
 
     async def list_all(self) -> List[OrderRead]:
-        try:
-            orders = await self.order_repo.list()
-            logger.info(
-                "order_list_all_success",
-                extra={"count": len(orders), "description": f"Fetched all orders, count={len(orders)}"}
-            )
-            return orders
-        except RepositoryException as e:
-            logger.error(
-                "order_list_all_db_error",
-                exc_info=True,
-                extra={"description": "Failed to list all orders", "error": str(e)}
-            )
-            raise
+        orders = await self.order_repo.list()
+        logger.info(
+            f"Fetched all orders, count={len(orders)}",
+            extra={"event": "order_list_all_success", "count": len(orders)}
+        )
+        return orders
 
     async def get_active_orders_now(self) -> List[OrderRead]:
         now = datetime.now()
-        try:
-            orders = await self.order_repo.get_orders_in_time_range(now, now)
-            active_orders = [o for o in orders if o.status == OrderStatus.APPROVED]
-            logger.info(
-                "order_list_active_now_success",
-                extra={"count": len(active_orders),
-                       "description": f"Fetched {len(active_orders)} active approved orders"}
-            )
-            return active_orders
-        except RepositoryException as e:
-            logger.error(
-                "order_list_active_now_db_error",
-                exc_info=True,
-                extra={"description": "Failed to fetch active orders", "error": str(e)}
-            )
-            raise
+        orders = await self.order_repo.get_orders_in_time_range(now, now)
+        active_orders = [o for o in orders if o.status == OrderStatus.APPROVED]
+        logger.info(
+            f"Fetched {len(active_orders)} active approved orders",
+            extra={"event": "order_list_active_now_success", "count": len(active_orders)}
+        )
+        return active_orders
 
     async def get_orders_by_time_range(self, start: datetime, end: datetime) -> List[OrderRead]:
         if start >= end:
             raise OrderValidationException("Start time must be before end time")
-        try:
-            orders = await self.order_repo.get_orders_in_time_range(start, end)
-            logger.info(
-                "order_list_time_range_success",
-                extra={"count": len(orders), "description": f"Fetched {len(orders)} orders between {start} and {end}"}
-            )
-            return orders
-        except RepositoryException as e:
-            logger.error(
-                "order_list_time_range_db_error",
-                exc_info=True,
-                extra={"description": f"Failed to fetch orders between {start} and {end}", "error": str(e)}
-            )
-            raise
+        orders = await self.order_repo.get_orders_in_time_range(start, end)
+        logger.info(
+            f"Fetched {len(orders)} orders between {start} and {end}",
+            extra={"event": "order_list_time_range_success", "count": len(orders),
+                   "start_time": str(start), "end_time": str(end)}
+        )
+        return orders
 
     async def get_user_orders(self, user_id: int) -> List[OrderRead]:
         try:
             await self.user_service.user_repo.get(user_id)
             orders = await self.order_repo.get_users_orders(user_id)
             logger.info(
-                "order_list_by_user_success",
-                extra={"count": len(orders), "user_id": user_id,
-                       "description": f"Fetched {len(orders)} orders for user_id={user_id}"}
+                f"Fetched {len(orders)} orders for user_id={user_id}",
+                extra={"event": "order_list_by_user_success", "count": len(orders), "user_id": user_id}
             )
             return orders
 
         except NotFoundException:
             logger.warning(
-                "order_list_by_user_not_found",
-                extra={"user_id": user_id, "description": f"User with id={user_id} not found"}
+                f"Cannot list orders: user_id={user_id} not found",
+                extra={"event": "order_list_by_user_not_found", "user_id": user_id}
             )
             raise UserNotFoundException(f"User with id={user_id} not found")
-
-        except RepositoryException as e:
-            logger.error(
-                "order_list_by_user_db_error",
-                exc_info=True,
-                extra={"user_id": user_id, "description": "Failed to fetch orders for user", "error": str(e)}
-            )
-            raise
 
     async def get(self, order_id: int) -> OrderRead:
         try:
             order = await self.order_repo.get(order_id)
             logger.info(
-                "order_get_success",
-                extra={"order_id": order_id, "description": f"Fetched order id={order_id}"}
+                f"Fetched order id={order_id}",
+                extra={"event": "order_get_success", "order_id": order_id}
             )
             return order
 
         except NotFoundException:
             logger.warning(
-                "order_get_not_found",
-                extra={"order_id": order_id, "description": f"Order with id={order_id} not found"}
+                f"Order id={order_id} not found",
+                extra={"event": "order_get_not_found", "order_id": order_id}
             )
             raise OrderNotFoundException(f"Order with id={order_id} not found")
 
@@ -145,9 +111,9 @@ class OrderService:
                     seen_ids.add(resource.id)
                     resources.append(resource)
         logger.info(
-            "order_active_resources_in_range_success",
-            extra={"count": len(resources),
-                   "description": f"Fetched {len(resources)} active resources in range {start} - {end}"}
+            f"Fetched {len(resources)} active resources in range {start} - {end}",
+            extra={"event": "order_active_resources_in_range_success", "count": len(resources),
+                   "start_time": str(start), "end_time": str(end)}
         )
         return resources
 
@@ -160,8 +126,8 @@ class OrderService:
                 resource_with_state = await self.resource_service.get(rid)
             except ResourceNotFoundException:
                 logger.warning(
-                    "order_resource_not_found",
-                    extra={"resource_id": rid, "description": f"Resource with id={rid} not found"}
+                    f"Order validation failed: resource id={rid} not found",
+                    extra={"event": "order_resource_not_found", "resource_id": rid}
                 )
                 raise ResourceNotFoundException(f"Resource with id={rid} not found")
 
@@ -169,9 +135,10 @@ class OrderService:
 
             if state not in allowed_states:
                 logger.warning(
-                    "order_resource_invalid_state",
-                    extra={"resource_id": rid,
-                           "description": f"Resource id={rid} in state={state} not allowed for purpose={purpose}"}
+                    f"Order validation failed: resource id={rid} state='{state}' not allowed for purpose='{purpose}'",
+                    extra={"event": "order_resource_invalid_state", "resource_id": rid,
+                           "resource_state": str(state), "order_purpose": str(purpose),
+                           "allowed_states": [str(s) for s in allowed_states]}
                 )
                 raise OrderValidationException(
                     f"Resource id={rid} in state={state} "
@@ -190,37 +157,27 @@ class OrderService:
             created = await self.order_repo.create(order_create)
 
             logger.info(
-                "order_create_success",
-                extra={"order_id": created.id, "user_id": order_create.user_id,
-                       "description": f"Created order id={created.id}"}
+                f"Order id={created.id} created for user_id={order_create.user_id}",
+                extra={"event": "order_create_success", "order_id": created.id, "user_id": order_create.user_id,
+                       "purpose": order_create.purpose.value, "resource_ids": order_create.resource_ids}
             )
 
             return created
 
         except NotFoundException:
             logger.warning(
-                "order_create_user_not_found",
-                extra={"user_id": order_create.user_id, "description": f"User with id={order_create.user_id} not found"}
+                f"Order creation failed: user_id={order_create.user_id} not found",
+                extra={"event": "order_create_user_not_found", "user_id": order_create.user_id}
             )
             raise UserNotFoundException(f"User with id={order_create.user_id} not found")
 
         except IntegrityViolationException as e:
             logger.warning(
-                "order_create_integrity_error",
-                exc_info=True,
-                extra={"user_id": order_create.user_id, "resource_ids": order_create.resource_ids,
-                       "description": "Integrity violation during order creation", "error": str(e)}
+                f"Order creation failed: integrity violation for user_id={order_create.user_id}",
+                extra={"event": "order_create_integrity_error", "user_id": order_create.user_id,
+                       "resource_ids": order_create.resource_ids, "error": str(e)}
             )
             raise OrderValidationException("Order failed integrity checks")
-
-        except RepositoryException as e:
-            logger.error(
-                "order_create_db_error",
-                exc_info=True,
-                extra={"user_id": order_create.user_id, "description": "Database error while creating order",
-                       "error": str(e)}
-            )
-            raise
 
     async def update_order(self, order_id: int, update: OrderUpdate) -> OrderRead:
         try:
@@ -243,34 +200,41 @@ class OrderService:
 
             # if the order was approved, editing moves it back to pending
             if updated.status == OrderStatus.APPROVED:
-                logger.info(f"Order id={order_id} was approved but got updated, moving to Pending")
+                logger.info(
+                    f"Order id={order_id} was approved but got updated, moving to Pending",
+                    extra={"event": "order_status_auto_pending", "order_id": order_id,
+                           "reason": "edited_after_approval"}
+                )
                 updated = await self.order_repo.update(
                     order_id,
                     OrderUpdate(status=OrderStatus.PENDING, message="Edited after approval, requires re-approval")
                 )
 
             logger.info(
-                "order_update_success",
-                extra={"order_id": order_id, "user_id": update.user_id, "description": f"Updated order id={order_id}"}
+                f"Order id={order_id} updated",
+                extra={"event": "order_update_success", "order_id": order_id, "user_id": update.user_id}
             )
             return updated
 
         except NotFoundException as e:
             if str(order_id) in str(e):
                 logger.warning(
-                    "order_update_not_found",
-                    extra={"order_id": order_id, "description": f"Order with id={order_id} not found"}
+                    f"Order update failed: order id={order_id} not found",
+                    extra={"event": "order_update_not_found", "order_id": order_id}
                 )
                 raise OrderNotFoundException(f"Order with id={order_id} not found")
             elif str(update.user_id) in str(e):
                 logger.warning(
-                    "order_create_user_not_found",
-                    extra={"user_id": update.user_id, "description": f"User with id={update.user_id} not found"}
+                    f"Order update failed: user_id={update.user_id} not found",
+                    extra={"event": "order_update_user_not_found", "user_id": update.user_id}
                 )
                 raise UserNotFoundException(f"User with id={update.user_id} not found")
 
         except IntegrityViolationException as e:
-            logger.warning(f"Order update integrity error for id={order_id}: {e}")
+            logger.warning(
+                f"Order update integrity error for id={order_id}",
+                extra={"event": "order_update_integrity_error", "order_id": order_id, "error": str(e)}
+            )
             raise OrderValidationException("Order update failed integrity checks")
 
     async def _check_conflicts(self, order: OrderRead) -> None:
@@ -283,13 +247,13 @@ class OrderService:
             shared = {r.id for r in order.resources} & {r.id for r in other.resources}
             if shared:
                 logger.warning(
-                    "order_conflict_detected",
+                    f"Order id={order.id} conflicts with order id={other.id}, "
+                    f"shared resources: {list(shared)}",
                     extra={
+                        "event": "order_conflict_detected",
                         "order_id": order.id,
                         "conflicting_order_id": other.id,
-                        "shared_resources": list(shared),
-                        "description": f"Order id={order.id} conflicts with order id={other.id} "
-                                       f"overlapping resources: {list(shared)}"
+                        "shared_resource_ids": list(shared),
                     }
                 )
                 raise OrderConflictException(
@@ -306,9 +270,11 @@ class OrderService:
 
             if new_status not in legal_transitions.get(order.status, []):
                 logger.warning(
-                    "order_status_change_illegal",
-                    extra={"order_id": order_id, "old_status": order.status, "new_status": new_status,
-                           "description": f"Illegal status transition {order.status} -> {new_status}"}
+                    f"Illegal status transition for order id={order_id}: "
+                    f"{order.status.value} -> {new_status.value}",
+                    extra={"event": "order_status_change_illegal", "order_id": order_id,
+                           "old_status": order.status.value, "new_status": new_status.value,
+                           "actor_id": changed_by_user_id}
                 )
                 raise OrderValidationException(f"Illegal status transition from {order.status} to {new_status}")
 
@@ -321,43 +287,43 @@ class OrderService:
             )
 
             logger.info(
-                "order_status_change_success",
-                extra={"order_id": order_id, "old_status": order.status, "new_status": new_status,
-                       "changed_by": changed_by_user_id,
-                       "description": f"Order id={order_id} status changed {order.status} -> {new_status}"}
+                f"Order id={order_id} status changed: {order.status.value} -> {new_status.value}",
+                extra={"event": "order_status_change_success", "order_id": order_id,
+                       "old_status": order.status.value, "new_status": new_status.value,
+                       "actor_id": changed_by_user_id}
             )
             return updated
 
         except NotFoundException as e:
             if str(order_id) in str(e):
                 logger.warning(
-                    "order_update_not_found",
-                    extra={"order_id": order_id, "description": f"Order with id={order_id} not found"}
+                    f"Status change failed: order id={order_id} not found",
+                    extra={"event": "order_status_change_not_found", "order_id": order_id}
                 )
                 raise OrderNotFoundException(f"Order with id={order_id} not found")
             elif str(changed_by_user_id) in str(e):
                 logger.warning(
-                    "order_create_user_not_found",
-                    extra={"user_id": changed_by_user_id, "description": f"User with id={changed_by_user_id} not found"}
+                    f"Status change failed: user_id={changed_by_user_id} not found",
+                    extra={"event": "order_status_change_user_not_found", "user_id": changed_by_user_id}
                 )
                 raise UserNotFoundException(f"User with id={changed_by_user_id} not found")
 
-    async def delete_order(self, order_id: int) -> None:
+    async def delete_order(self, order_id: int, actor_id: int = None) -> None:
         try:
             deleted = await self.order_repo.delete(order_id)
             if not deleted:
                 logger.warning(
-                    "order_delete_not_found",
-                    extra={"order_id": order_id, "description": f"Order with id={order_id} not found"}
+                    f"Order delete failed: order id={order_id} not found",
+                    extra={"event": "order_delete_not_found", "order_id": order_id, "actor_id": actor_id}
                 )
                 raise OrderNotFoundException(f"Order with id={order_id} not found")
             logger.info(
-                "order_delete_success",
-                extra={"order_id": order_id, "description": f"Deleted order id={order_id}"}
+                f"Order id={order_id} deleted",
+                extra={"event": "order_delete_success", "order_id": order_id, "actor_id": actor_id}
             )
-        except RepositoryException as e:
-            logger.error(
-                "order_delete_db_error",
-                extra={"order_id": order_id, "description": "Database error while deleting order", "error": str(e)}
+        except NotFoundException:
+            logger.warning(
+                f"Order delete failed: order id={order_id} not found",
+                extra={"event": "order_delete_not_found", "order_id": order_id, "actor_id": actor_id}
             )
-            raise
+            raise OrderNotFoundException(f"Order with id={order_id} not found")

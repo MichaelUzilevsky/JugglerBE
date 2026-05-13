@@ -76,7 +76,7 @@ class SQLAlchemyResourceRepository(
                 )
                 raise ResourceNotFoundException(f"Resource with id={obj_id} not found")
 
-            self._log_info(
+            self._log_debug(
                 event="resource_get_success",
                 msg=f"Fetched resource with id={obj_id}",
                 extra={"resource_id": obj_id, "resource_type": orm_obj.resource_type.value}
@@ -100,7 +100,7 @@ class SQLAlchemyResourceRepository(
             result = await self.session.execute(stmt)
             orm_objs = result.unique().scalars().all()
 
-            self._log_info(
+            self._log_debug(
                 event="resource_list_success",
                 msg=f"Fetched list of {len(orm_objs)} resources",
                 extra={"count": len(orm_objs)}
@@ -124,7 +124,7 @@ class SQLAlchemyResourceRepository(
             result = await self.session.execute(stmt)
             orm_objs = result.unique().scalars().all()
 
-            self._log_info(
+            self._log_debug(
                 event="resource_list_by_type_success",
                 msg=f"Fetched list of {len(orm_objs)} resources of type={resource_type.value}",
                 extra={"count": len(orm_objs), "resource_type": resource_type.value}
@@ -141,7 +141,7 @@ class SQLAlchemyResourceRepository(
 
     async def get_supported_types(self) -> List[str]:
         types = [rt for rt in ResourceType]
-        self._log_info(
+        self._log_debug(
             event="resource_get_supported_types",
             msg=f"Supported resource types: {[str(t) for t in types]}",
             extra={"supported_types": types}
@@ -168,7 +168,7 @@ class SQLAlchemyResourceRepository(
             self.session.add(history)
             await self.session.flush()
 
-            self._log_info(
+            self._log_debug(
                 event="resource_create_success",
                 msg=f"Created resource id={resource.id}",
                 extra={"resource_id": resource.id, "resource_type": resource.resource_type, "user_id": changing_user_id}
@@ -222,7 +222,7 @@ class SQLAlchemyResourceRepository(
                 self.session.add(history)
                 await self.session.flush()
 
-            self._log_info(
+            self._log_debug(
                 event="resource_update_success",
                 msg=f"Updated resource id={obj_id}",
                 extra={"resource_id": obj_id, "user_id": changing_user_id}
@@ -247,7 +247,7 @@ class SQLAlchemyResourceRepository(
     async def delete(self, obj_id: int) -> bool:
         try:
             deleted = await super().delete(obj_id)
-            self._log_info(
+            self._log_debug(
                 event="resource_delete_success",
                 msg=f"Deleted resource id={obj_id}",
                 extra={"resource_id": obj_id}

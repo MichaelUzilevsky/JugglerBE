@@ -30,13 +30,13 @@ class JWTService:
         access_jwt = create_access_token(username=username)
 
         logger.info(
-            "jwt_create_and_store_success",
+            f"Issued new refresh token for user '{username}' (id={user_id})",
             extra={
+                "event": "jwt_create_success",
                 "user_id": user_id,
                 "username": username,
                 "jti_hash": jti_hash,
                 "expires_at": expires_at.isoformat(),
-                "description": f"Issued new refresh token for user {username} ({user_id})"
             }
         )
 
@@ -52,35 +52,37 @@ class JWTService:
         raw_jti = payload.get("jti")
         if not (username and raw_jti):
             logger.warning(
-                "jwt_rotate_invalid_payload",
-                extra={"payload": payload, "description": "Refresh token payload missing username or jti"},
+                "Refresh token rotation failed: missing username or jti in payload",
+                extra={"event": "jwt_rotate_invalid_payload"},
             )
             raise InvalidJwtPayloadException("Invalid refresh token payload")
+
+        jti_hash = hash_jti(raw_jti)
 
         # Lookup the record in DB
         db_token = await self.jwt_repo.get_by_jti(raw_jti)
         if not db_token:
             logger.warning(
-                "jwt_rotate_not_found",
-                extra={"raw_jti": raw_jti, "description": "Refresh token not found in DB"},
+                "Refresh token rotation failed: token not found in DB",
+                extra={"event": "jwt_rotate_not_found", "jti_hash": jti_hash},
             )
             raise JwtNotFoundException("refresh token not found")
 
         if db_token.revoked:
             logger.warning(
-                "jwt_rotate_revoked",
-                extra={"raw_jti": raw_jti, "user_id": db_token.user_id, "description": "Refresh token already revoked"},
+                f"Refresh token rotation failed: token already revoked for user_id={db_token.user_id}",
+                extra={"event": "jwt_rotate_revoked", "jti_hash": jti_hash, "user_id": db_token.user_id},
             )
             raise JwtRevokedException("refresh token revoked")
 
         if db_token.expires_at <= datetime.now(timezone.utc):
             logger.warning(
-                "jwt_rotate_expired",
+                f"Refresh token rotation failed: token expired for user_id={db_token.user_id}",
                 extra={
-                    "raw_jti": raw_jti,
+                    "event": "jwt_rotate_expired",
+                    "jti_hash": jti_hash,
                     "user_id": db_token.user_id,
                     "expires_at": db_token.expires_at.isoformat(),
-                    "description": "Refresh token expired",
                 },
             )
             raise JwtExpiredException("refresh token expired")
@@ -103,14 +105,14 @@ class JWTService:
         new_access_jwt = create_access_token(username=username)
 
         logger.info(
-            "jwt_rotate_success",
+            f"Rotated refresh token for user '{username}' (id={db_token.user_id})",
             extra={
-                "old_jti_hash": hash_jti(raw_jti),
+                "event": "jwt_rotate_success",
+                "old_jti_hash": jti_hash,
                 "new_jti_hash": new_jti_hash,
                 "user_id": db_token.user_id,
                 "username": username,
                 "expires_at": new_expires.isoformat(),
-                "description": f"Rotated refresh token for user {username} ({db_token.user_id})"
             }
         )
 
@@ -124,19 +126,20 @@ class JWTService:
         raw_jti = payload.get("jti")
         if not raw_jti:
             logger.warning(
-                "jwt_revoke_invalid_payload",
-                extra={"payload": payload, "description": "Missing jti in refresh token payload"},
+                "Refresh token revocation failed: missing jti in payload",
+                extra={"event": "jwt_revoke_invalid_payload"},
             )
             raise InvalidJwtPayloadException("Invalid refresh token payload")
 
+        jti_hash = hash_jti(raw_jti)
         result = await self.jwt_repo.revoke_by_jti(raw_jti)
 
         logger.info(
-            "jwt_revoke_success",
+            "Refresh token revoked (logout)",
             extra={
-                "jti_hash": hash_jti(raw_jti),
+                "event": "jwt_revoke_success",
+                "jti_hash": jti_hash,
                 "result": result,
-                "description": "Refresh token revoked successfully"
             }
         )
 
