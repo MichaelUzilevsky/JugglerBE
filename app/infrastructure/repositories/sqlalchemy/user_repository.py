@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.sqlalchemy.models import User
 from app.domain.exceptions.repository_exceptions import IntegrityViolationException, NotFoundException, \
@@ -27,9 +28,12 @@ class SQLAlchemyUserRepository(
     def __init__(self, session: AsyncSession):
         super().__init__(session, User, UserMapper)
 
+    def _default_options(self) -> list:
+        return [selectinload(User.team)]
+
     async def get_by_username(self, username: str) -> Optional[UserRead]:
         try:
-            stmt = select(User).where(User.username == username)
+            stmt = select(User).where(User.username == username).options(selectinload(User.team))
             result = await self.session.execute(stmt)
             orm_user = result.scalar_one_or_none()
 
@@ -63,7 +67,7 @@ class SQLAlchemyUserRepository(
 
     async def get_by_email(self, email: str) -> Optional[UserRead]:
         try:
-            stmt = select(User).where(User.email == email)
+            stmt = select(User).where(User.email == email).options(selectinload(User.team))
             result = await self.session.execute(stmt)
             orm_user = result.scalar_one_or_none()
 
@@ -99,7 +103,7 @@ class SQLAlchemyUserRepository(
 
     async def get_internal_by_username(self, username: str) -> Optional[UserReadInternal]:
         try:
-            stmt = select(User).where(User.username == username)
+            stmt = select(User).where(User.username == username).options(selectinload(User.team))
             result = await self.session.execute(stmt)
             orm_user = result.scalar_one_or_none()
 

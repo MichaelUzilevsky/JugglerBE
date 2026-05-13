@@ -8,6 +8,7 @@ class UserSignupRequest(BaseModel):
     email: str
     full_name: str
     password: str
+    team_id: Optional[int] = None
 
 
 class UserUpdateRequest(BaseModel):

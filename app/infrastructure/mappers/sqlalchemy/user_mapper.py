@@ -14,6 +14,7 @@ class UserMapper:
             full_name=user_create.full_name,
             email=user_create.email,
             role=user_create.role,
+            team_id=user_create.team_id,
         )
 
     @staticmethod
@@ -21,7 +22,17 @@ class UserMapper:
         """
         Map ORM User → UserRead schema
         """
-        return UserRead.model_validate(user)
+        return UserRead(
+            id=user.id,
+            username=user.username,
+            full_name=user.full_name,
+            email=user.email,
+            role=user.role,
+            team_id=user.team_id,
+            team_name=user.team.name if user.team else None,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+        )
 
     @staticmethod
     def update_orm(user: User, user_update: UserUpdate) -> User:
@@ -38,5 +49,7 @@ class UserMapper:
             user.email = user_update.email
         if user_update.role is not None:
             user.role = user_update.role
+        if user_update.team_id is not None:
+            user.team_id = user_update.team_id
 
         return user

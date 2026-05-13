@@ -11,6 +11,7 @@ from app.domain.schemas.order.order import OrderCreate, OrderUpdate, OrderRead
 from app.domain.schemas.order.purpose_to_allowed_states import PURPOSE_TO_ALLOWED_STATES
 from app.domain.schemas.resource.resource import ResourceRead
 from app.domain.services.resource_service import ResourceService
+from app.domain.services.team_service import TeamService
 from app.domain.services.user_service import UserService
 from app.exceptions.orders_exceptions.orders_exceptions import OrderValidationException, OrderNotFoundException, \
     OrderConflictException
@@ -30,10 +31,12 @@ class OrderService:
             order_repo: IOrderRepository,
             user_service: UserService,
             resource_service: ResourceService,
+            team_service: TeamService,
     ):
         self.order_repo = order_repo
         self.user_service = user_service
         self.resource_service = resource_service
+        self.team_service = team_service
 
     async def list_all(self) -> List[OrderRead]:
         orders = await self.order_repo.list()
@@ -148,6 +151,8 @@ class OrderService:
     async def create_order(self, order_create: OrderCreate) -> OrderRead:
         try:
             await self.user_service.user_repo.get(order_create.user_id)
+
+            await self.team_service.check_team_permission(order_create.user_id, order_create.purpose)
 
             if order_create.start_time >= order_create.end_time:
                 raise OrderValidationException("Start time must be before end time")

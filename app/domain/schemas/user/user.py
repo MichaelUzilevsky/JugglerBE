@@ -13,6 +13,7 @@ class UserCreate(BaseModel):
     full_name: str
     email: str
     role: UserRole = UserRole.USER
+    team_id: Optional[int] = None
 
 
 # ----------------- Update -----------------
@@ -22,6 +23,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None
     role: Optional[UserRole] = None
+    team_id: Optional[int] = None
 
 
 # ----------------- Read -----------------
@@ -31,6 +33,8 @@ class UserRead(BaseModel):
     full_name: str
     email: str
     role: UserRole
+    team_id: Optional[int] = None
+    team_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

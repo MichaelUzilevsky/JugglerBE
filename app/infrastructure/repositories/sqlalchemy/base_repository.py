@@ -25,6 +25,10 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
         self.orm_model = orm_model
         self.mapper = mapper
 
+    def _default_options(self) -> list:
+        """Override in subclasses to add eager-loading options (e.g., selectinload)."""
+        return []
+
     @staticmethod
     def _log_debug(event: str, msg: str = None, extra: dict = None):
         logger.debug(msg or event, extra={"event": event, **(extra or {})})
@@ -69,7 +73,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
 
     async def get(self, obj_id: int | str) -> Optional[DomainRead]:
         try:
-            stmt = select(self.orm_model).where(self.orm_model.id == obj_id)
+            stmt = select(self.orm_model).where(self.orm_model.id == obj_id).options(*self._default_options())
             result = await self.session.execute(stmt)
             orm_obj = result.scalar_one_or_none()
 
@@ -99,7 +103,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
 
     async def list(self) -> List[DomainRead]:
         try:
-            stmt = select(self.orm_model)
+            stmt = select(self.orm_model).options(*self._default_options())
             result = await self.session.execute(stmt)
             orm_objs = result.scalars().all()
 
@@ -120,7 +124,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
 
     async def update(self, obj_id: int | str, update_schema: DomainUpdate) -> Optional[DomainRead]:
         try:
-            stmt = select(self.orm_model).where(self.orm_model.id == obj_id)
+            stmt = select(self.orm_model).where(self.orm_model.id == obj_id).options(*self._default_options())
             result = await self.session.execute(stmt)
             orm_obj = result.scalar_one_or_none()
 
@@ -161,7 +165,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
 
     async def delete(self, obj_id: int) -> bool:
         try:
-            stmt = select(self.orm_model).where(self.orm_model.id == obj_id)
+            stmt = select(self.orm_model).where(self.orm_model.id == obj_id).options(*self._default_options())
             result = await self.session.execute(stmt)
             orm_obj = result.scalar_one_or_none()
 
