@@ -22,7 +22,7 @@ class SQLAlchemyJwtTokenRepository(
     async def get_by_jti(self, raw_jti: str) -> Optional[JwtTokenRead]:
         key = hash_jti(raw_jti)
         token = await self.get(key)
-        self._log_info(
+        self._log_debug(
             event="get_success",
             msg=f"Fetched jwt_token with id={key}",
             extra={"id": key}
@@ -33,7 +33,7 @@ class SQLAlchemyJwtTokenRepository(
         key = hash_jti(raw_jti)
         update_schema = JwtTokenUpdate(revoked=True)
         revoked = await self.update(key, update_schema)
-        self._log_info(
+        self._log_debug(
             event="revoke_success",
             msg=f"Revoked jwt_token with id={key}",
             extra={"id": key}
@@ -45,7 +45,7 @@ class SQLAlchemyJwtTokenRepository(
         new_key = hash_jti(new_raw_jti)
         update_schema = JwtTokenUpdate(revoked=True, replaced_by=new_key)
         replaced = await self.update(old_key, update_schema)
-        self._log_info(
+        self._log_debug(
             event="token_replace_success",
             msg=f"Replaced jwt_token with id={old_key} to new token with id={new_key}",
             extra={"old_token_id": old_key, "new_token_id": new_key}

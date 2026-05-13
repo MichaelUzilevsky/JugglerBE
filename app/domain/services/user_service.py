@@ -24,38 +24,65 @@ class UserService:
 
     async def list_users(self) -> List[UserRead]:
         users = await self.user_repo.list()
-        logger.info("list_users_success", extra={"count": len(users), "description": f"Fetched {len(users)} users."})
+        logger.info(
+            f"Fetched {len(users)} users",
+            extra={"event": "user_list_success", "count": len(users)}
+        )
         return users
 
     async def signup(self, user_create: UserCreate) -> UserRead:
         user_create.password = hash_password(user_create.password)
-        logger.info("signup_attempt", extra={"username": user_create.username, "email": user_create.email})
+        logger.info(
+            f"Signup attempt for username='{user_create.username}'",
+            extra={"event": "user_signup_attempt", "username": user_create.username, "email": user_create.email}
+        )
 
         try:
             user = await self.user_repo.create(user_create)
         except UsernameAlreadyExistsException:
-            logger.warning("signup_failed_username", extra={"username": user_create.username})
+            logger.warning(
+                f"Signup failed: username '{user_create.username}' already exists",
+                extra={"event": "user_signup_failed", "reason": "username_taken", "username": user_create.username}
+            )
             raise
         except EmailAlreadyExistsException:
-            logger.warning("signup_failed_email", extra={"email": user_create.email})
+            logger.warning(
+                f"Signup failed: email '{user_create.email}' already exists",
+                extra={"event": "user_signup_failed", "reason": "email_taken", "email": user_create.email}
+            )
             raise
 
-        logger.info("user_created", extra={"username": user_create.username, "user_id": user.id})
+        logger.info(
+            f"User '{user_create.username}' created",
+            extra={"event": "user_create_success", "user_id": user.id, "username": user_create.username}
+        )
         return user
 
     async def login(self, username: str, password: str) -> UserRead:
-        logger.info("login_attempt", extra={"username": username})
+        logger.info(
+            f"Login attempt for username='{username}'",
+            extra={"event": "login_attempt", "username": username}
+        )
 
         user = await self.user_repo.get_internal_by_username(username)
         if not user:
-            logger.warning("login_failed_not_found", extra={"username": username})
+            logger.warning(
+                f"Login failed: username '{username}' not found",
+                extra={"event": "login_failed", "reason": "user_not_found", "username": username}
+            )
             raise LoginFailedException("Invalid username or password.")
 
         if not verify_password(password, user.password):
-            logger.warning("login_failed_wrong_password", extra={"username": username})
+            logger.warning(
+                f"Login failed: wrong password for username='{username}'",
+                extra={"event": "login_failed", "reason": "wrong_password", "username": username}
+            )
             raise LoginFailedException("Invalid username or password.")
 
-        logger.info("login_success", extra={"username": username, "user_id": user.id})
+        logger.info(
+            f"Login successful for username='{username}'",
+            extra={"event": "login_success", "username": username, "user_id": user.id}
+        )
         return user
 
     async def update_user(self, user_id: int, user_update: UserUpdate) -> UserRead:
@@ -65,40 +92,68 @@ class UserService:
         try:
             updated_user = await self.user_repo.update(user_id, user_update)
         except (UsernameAlreadyExistsException, EmailAlreadyExistsException) as e:
-            logger.error("update_failed_integrity", extra={"user_id": user_id, "error": str(e)})
+            logger.warning(
+                f"User update failed: integrity violation for user_id={user_id}",
+                extra={"event": "user_update_failed", "reason": "integrity_violation", "user_id": user_id, "error": str(e)}
+            )
             raise
         except UserNotFoundException:
-            logger.error("update_failed_not_found", extra={"user_id": user_id})
+            logger.warning(
+                f"User update failed: user_id={user_id} not found",
+                extra={"event": "user_update_not_found", "user_id": user_id}
+            )
             raise
 
-        logger.info("user_updated", extra={"user_id": user_id})
+        logger.info(
+            f"User id={user_id} updated",
+            extra={"event": "user_update_success", "user_id": user_id}
+        )
         return updated_user
 
-    async def delete_user(self, user_id: int) -> None:
-        try:
-            await self.user_repo.delete(user_id)
-        except UserNotFoundException:
-            logger.error("delete_failed_not_found", extra={"user_id": user_id})
-            raise
+    async def delete_user(self, user_id: int, actor_id: int = None) -> None:
+        # Fetch before deleting to snapshot the username
+        user = await self.user_repo.get(user_id)
+        if not user:
+            logger.warning(
+                f"User delete failed: user_id={user_id} not found",
+                extra={"event": "user_delete_not_found", "user_id": user_id, "actor_id": actor_id}
+            )
+            raise UserNotFoundException(f"User with id={user_id} not found")
 
-        logger.info("user_deleted", extra={"user_id": user_id})
+        await self.user_repo.delete(user_id)
+        logger.info(
+            f"User '{user.username}' (id={user_id}) deleted",
+            extra={"event": "user_delete_success", "user_id": user_id, "deleted_username": user.username, "actor_id": actor_id}
+        )
 
-    async def promote_to_admin(self, user_id: int):
+    async def promote_to_admin(self, user_id: int, actor_id: int = None):
         try:
             updated_user = await self.user_repo.update(user_id, UserUpdate(role=UserRole.ADMIN))
         except UserNotFoundException:
-            logger.error("promotion_failed_not_found", extra={"user_id": user_id})
+            logger.warning(
+                f"Promotion failed: user_id={user_id} not found",
+                extra={"event": "user_promote_not_found", "user_id": user_id, "actor_id": actor_id}
+            )
             raise
 
-        logger.info("user_promoted", extra={"user_id": user_id})
+        logger.info(
+            f"User id={user_id} promoted to admin",
+            extra={"event": "user_promote_success", "user_id": user_id, "actor_id": actor_id}
+        )
         return updated_user
 
-    async def demote_to_user(self, user_id: int):
+    async def demote_to_user(self, user_id: int, actor_id: int = None):
         try:
             updated_user = await self.user_repo.update(user_id, UserUpdate(role=UserRole.USER))
         except UserNotFoundException:
-            logger.error("demotion_failed_not_found", extra={"user_id": user_id})
+            logger.warning(
+                f"Demotion failed: user_id={user_id} not found",
+                extra={"event": "user_demote_not_found", "user_id": user_id, "actor_id": actor_id}
+            )
             raise
 
-        logger.info("user_demoted", extra={"user_id": user_id})
+        logger.info(
+            f"User id={user_id} demoted to user",
+            extra={"event": "user_demote_success", "user_id": user_id, "actor_id": actor_id}
+        )
         return updated_user

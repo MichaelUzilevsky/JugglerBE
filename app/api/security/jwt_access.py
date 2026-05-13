@@ -19,26 +19,26 @@ def decode_access_token(token: str) -> str:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         if payload.get("type") != "access":
             logger.warning(
-                "jwt_access_decode_wrong_type",
-                extra={"payload": payload, "description": "Expected 'access' token type"}
+                "Expected 'access' token type, got different type",
+                extra={"event": "jwt_access_wrong_type"}
             )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
 
         username = payload.get("sub")
         if not username:
             logger.warning(
-                "jwt_access_missing_sub",
-                extra={"payload": payload, "description": "Missing 'sub' field in access token"}
+                "Access token missing 'sub' (username) field",
+                extra={"event": "jwt_access_missing_sub"}
             )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token missing username")
 
         return username
 
     except ExpiredSignatureError:
-        logger.warning("jwt_access_expired", extra={"description": "Access token expired"})
+        logger.warning("Access token expired", extra={"event": "jwt_access_expired"})
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token expired")
     except JWTError as e:
-        logger.warning("jwt_access_invalid", extra={"error": str(e), "description": "Invalid access token"})
+        logger.warning("Invalid access token", extra={"event": "jwt_access_invalid", "error": str(e)})
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token")
 
 

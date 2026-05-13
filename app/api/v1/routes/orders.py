@@ -107,7 +107,7 @@ async def change_order_status(
 async def delete_order(
         order_id: int,
         service: OrderService = Depends(get_order_service),
-        _=Depends(admin_only)
+        admin: UserRead = Depends(admin_only)
 ):
-    await service.delete_order(order_id)
+    await service.delete_order(order_id, actor_id=admin.id)
     return {"detail": f"Order {order_id} deleted"}

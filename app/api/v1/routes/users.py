@@ -41,18 +41,18 @@ async def update_user(
 
 @router.patch("/{user_id}/promote", response_model=UserRead)
 async def promote_user(user_id: int, user_service: UserService = Depends(get_user_service),
-                       _: UserRead = Depends(admin_only)):
-    return await user_service.promote_to_admin(user_id)
+                       admin: UserRead = Depends(admin_only)):
+    return await user_service.promote_to_admin(user_id, actor_id=admin.id)
 
 
 @router.patch("/{user_id}/demote", response_model=UserRead)
 async def demote_user(user_id: int, user_service: UserService = Depends(get_user_service),
-                      _: UserRead = Depends(admin_only)):
-    return await user_service.demote_to_user(user_id)
+                      admin: UserRead = Depends(admin_only)):
+    return await user_service.demote_to_user(user_id, actor_id=admin.id)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: int, user_service: UserService = Depends(get_user_service),
-                      _: UserRead = Depends(admin_only)):
-    await user_service.delete_user(user_id)
+                      admin: UserRead = Depends(admin_only)):
+    await user_service.delete_user(user_id, actor_id=admin.id)
     return JSONResponse(status_code=200, content={"detail": "User deleted"})

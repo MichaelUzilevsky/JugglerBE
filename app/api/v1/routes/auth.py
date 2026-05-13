@@ -60,7 +60,7 @@ async def refresh(
     try:
         new_access, new_refresh = await jwt_service.rotate_refresh_token(refresh_token)
     except Exception as e:
-        logger.warning("refresh_failed", extra={"error": str(e)})
+        logger.warning("Refresh token rotation failed", extra={"event": "jwt_refresh_failed", "error": str(e)})
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     # set new cookie (rotation)

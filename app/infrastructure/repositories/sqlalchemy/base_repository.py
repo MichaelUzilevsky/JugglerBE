@@ -26,8 +26,8 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
         self.mapper = mapper
 
     @staticmethod
-    def _log_info(event: str, msg: str = None, extra: dict = None):
-        logger.info(msg or event, extra={"event": event, **(extra or {})})
+    def _log_debug(event: str, msg: str = None, extra: dict = None):
+        logger.debug(msg or event, extra={"event": event, **(extra or {})})
 
     @staticmethod
     def _log_warning(event: str, msg: str = None, extra: dict = None):
@@ -44,7 +44,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
             await self.session.flush()
             await self.session.refresh(orm_obj)
 
-            self._log_info(
+            self._log_debug(
                 event="create_success",
                 msg=f"Created object with id={orm_obj.id}",
                 extra={"id": orm_obj.id}
@@ -74,7 +74,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
             orm_obj = result.scalar_one_or_none()
 
             if orm_obj:
-                self._log_info(
+                self._log_debug(
                     event="get_success",
                     msg=f"Fetched object with id={obj_id}",
                     extra={"id": obj_id}
@@ -103,7 +103,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
             result = await self.session.execute(stmt)
             orm_objs = result.scalars().all()
 
-            self._log_info(
+            self._log_debug(
                 event="list_success",
                 msg=f"Fetched list of {len(orm_objs)} objects",
                 extra={"count": len(orm_objs)}
@@ -136,7 +136,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
             await self.session.flush()
             await self.session.refresh(orm_obj)
 
-            self._log_info(
+            self._log_debug(
                 event="update_success",
                 msg=f"Updated object with id={obj_id}",
                 extra={"id": obj_id}
@@ -175,7 +175,7 @@ class SQLAlchemyBaseRepository(Generic[DomainRead, DomainCreate, DomainUpdate, O
 
             await self.session.delete(orm_obj)
 
-            self._log_info(
+            self._log_debug(
                 event="delete_success",
                 msg=f"Deleted object with id={obj_id}",
                 extra={"id": obj_id}

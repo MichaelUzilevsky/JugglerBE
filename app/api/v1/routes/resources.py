@@ -52,7 +52,7 @@ async def update_resource(
 async def delete_resource(
         resource_id: int,
         service: ResourceService = Depends(get_resource_service),
-        _=Depends(admin_only)
+        admin: UserRead = Depends(admin_only)
 ):
-    await service.delete(resource_id)
+    await service.delete(resource_id, actor_id=admin.id)
     return JSONResponse(status_code=200, content={"detail": "Resource deleted"})
